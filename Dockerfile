@@ -6,10 +6,10 @@ RUN sudo apt-get update
 RUN sudo apt-get -y install git python3-setuptools
 RUN sudo apt-get autoremove
 
-WORKDIR /bloodflow
+# WORKDIR /bloodflow
 # RUN mkdir /bloodflow
 
-COPY . .
+# COPY . .
 # COPY ./arteryfe /bloodflow/arteryfe
 
 
@@ -22,7 +22,7 @@ CMD ["python3","/bloodflow/app.py"]
 
 
 
-# RUN git clone https://github.com/akdiem/bloodflow.git
+RUN git clone https://github.com/19-FYP-2023/bloodflow-1d-model.git
 # RUN cd bloodflow 
 # RUN sudo python3 setup.py install 
 # RUN cd ..

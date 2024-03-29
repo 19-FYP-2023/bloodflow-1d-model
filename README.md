@@ -43,3 +43,5 @@ artery.fe is free software made available under the BSD 3-clause License. For de
 my docker commands
 docker build -t arteryfe:2017.2.0 .
 docker run -it arteryfe:2017.2.0 /bin/bash
+sudo python3 setup.py install
+python3 demo_arterybranch.py --cfg config/demo_arterybranch.cfg
