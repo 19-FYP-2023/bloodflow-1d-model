@@ -1,15 +1,7 @@
 import sys
 import numpy as np
-import copy
 
 from dolfin import *
-
-# Compiler parameters
-flags = ["-O3", "-ffast-math", "-march=native"]
-parameters["form_compiler"]["quadrature_degree"] = 4
-parameters["form_compiler"]["representation"] = "uflacs"
-parameters["form_compiler"]["cpp_optimize"] = True
-parameters["form_compiler"]["cpp_optimize_flags"] = " ".join(flags)
 
 
 class Artery(object):
@@ -20,10 +12,10 @@ class Artery(object):
     Arguments
     ---------
 
-    root : boolean
+    root_vessel : boolean
         True if the artery is a root vessel in the artery network (has no
         parent)
-    leaf : boolean
+    end_vessel : boolean
         True if the artery is a terminal vessel in the artery network (has no
         daughters)
     rc : float
@@ -53,18 +45,25 @@ class Artery(object):
     """
 
 
-    def __init__(self, i, T, param, root=False, leaf=False):
-        self.i = i
-        self.root = root
-        self.leaf = leaf
-        self.T = T
-        self.param = copy.deepcopy(param)
-        self.param['Ru'] = param['Ru'][i]
-        self.param['Rd'] = param['Rd'][i]
-        self.param['L'] = param['L'][i]
+    def __init__(self, root_vessel, end_vessel, rc, qc, Ru, Rd, L, k1, k2, k3,
+                 rho, Re, nu, p0):
+        self.root_vessel = root_vessel
+        self.end_vessel = end_vessel
+        self.rc = rc
+        self.qc = qc
+        self.Ru = Ru
+        self.Rd = Rd
+        self.L = L
+        self.k1 = k1
+        self.k2 = k2
+        self.k3 = k3
+        self.rho = rho
+        self.Re = Re
+        self.nu = nu
+        self.p0 = p0
 
 
-    def define_geometry(self, geo):
+    def define_geometry(self, Nx, Nt, T, N_cycles):
         """
         Initialises the artery geometry by creating the spatial refinement,
         temporal refinement and FEniCS objects.
@@ -80,42 +79,35 @@ class Artery(object):
         N_cycles: int
             Number of cardiac cycles in the simulation
         """
-        Nx = geo['Nx']
-        Nt = geo['Nt']
-        N_cycles = geo['N_cycles']
-        L = self.param['L']
-        Ru = self.param['Ru']
-        Rd = self.param['Rd']
-        R_term = self.param['R_term']
-        k1 = self.param['k1']
-        k2 = self.param['k2']
-        k3 = self.param['k3']
+        self.Nx = Nx
+        self.Nt = Nt
+        self.T = T
+        self.N_cycles = N_cycles
 
-        self.dx = L/Nx
-        self.dt = self.T/Nt
+        self.dx = self.L/self.Nx
+        self.dt = self.T/self.Nt
 
         # Step for boundary condition computations, starting at normal size
         self.dex = self.dx
 
-        self.db = np.sqrt(self.param['nu']*self.T/2/np.pi)
+        self.db = np.sqrt(self.nu*self.T/2/np.pi)
 
-        self.mesh = IntervalMesh(Nx, 0, L)
+        self.mesh = IntervalMesh(self.Nx, 0, self.L)
         self.elV = FiniteElement('CG', self.mesh.ufl_cell(), 1)
         self.V = FunctionSpace(self.mesh, self.elV)
         self.V2 = FunctionSpace(self.mesh, self.elV*self.elV)
 
         # Initial vessel-radius and deduced quantities
-        if self.leaf and Rd == 1:
-            Rd = R_term
         self.r0 = Expression('Ru*pow(Rd/Ru, x[0]/L)',
-                         degree=2, Ru=Ru, Rd=Rd, L=L)
+                             degree=2, Ru=self.Ru, Rd=self.Rd, L=self.L)
         self.A0 = Expression('pi*pow(r0, 2)', degree=2, r0=self.r0)
         self.f = Expression('4.0/3.0*(k1*exp(k2*r0) + k3)', degree=2,
-                            k1=k1, k2=k2, k3=k3, r0=self.r0)
+                            k1=self.k1, k2=self.k2, k3=self.k3, r0=self.r0)
         self.dfdr = Expression('4.0/3.0*k1*k2*exp(k2*r0)', degree=2,
-                               k1=k1, k2=k2, r0=self.r0)
+                               k1=self.k1, k2=self.k2, r0=self.r0)
         self.drdx = Expression('logRdRu/L*r0', degree=2,
-                               logRdRu=np.log(Rd/Ru), L=L, r0=self.r0)
+                               logRdRu=np.log(self.Rd/self.Ru), L=self.L,
+       										r0=self.r0)
 
 
     def define_solution(self, q0, theta=0.5, bc_tol=1.e-14):
@@ -133,10 +125,6 @@ class Artery(object):
         bc_tol : float
             Inlet and outlet boundary thickness (tolerance)
         """
-        L = self.param['L']
-        p0 = self.param['p0']
-        Re = self.param['Re']
-
         # Initial flow value
         self.q0 = q0
 
@@ -152,24 +140,22 @@ class Artery(object):
 
         # Current solution, initialised
         self.Un = Function(self.V2)
-        self.Un.set_allow_extrapolation(True)
         self.Un.assign(Expression(('A0', 'q0'), degree=2,
                                   A0=self.A0, q0=self.q0))
-        self.U.assign(self.Un)
 
         # Current pressure, initialised
         self.pn = Function(self.V)
-        self.pn.assign(Expression('p0', degree=2, p0=p0))
+        self.pn.assign(Expression('p0', degree=2, p0=self.p0))
 
         # Boundary conditions (spatial)
         def inlet_bdry(x, on_boundary):
             return on_boundary and near(x[0], 0, bc_tol)
 
         def outlet_bdry(x, on_boundary):
-            return on_boundary and near(x[0], L, bc_tol)
+            return on_boundary and near(x[0], self.L, bc_tol)
 
         # Inlet boundary conditions
-        if self.root:
+        if self.root_vessel:
             self._q_in = Expression('value', degree=0, value=self.q0)
             bc_inlet = DirichletBC(self.V2.sub(1), self._q_in, inlet_bdry)
         else:
@@ -178,12 +164,12 @@ class Artery(object):
             bc_inlet = DirichletBC(self.V2, self._U_in, inlet_bdry)
 
         # Outlet boundary conditions
-        if self.leaf:
-            self._A_out = Expression('value', degree=0, value=self.A0(L))
+        if self.end_vessel:
+            self._A_out = Expression('value', degree=0, value=self.A0(self.L))
             bc_outlet = DirichletBC(self.V2.sub(0), self._A_out, outlet_bdry)
         else:
             self._U_out = Expression(('A', 'q'), degree=0,
-                                     A=self.A0(L), q=self.q0)
+                                     A=self.A0(self.L), q=self.q0)
             bc_outlet = DirichletBC(self.V2, self._U_out, outlet_bdry)
 
         self.bcs = [bc_inlet, bc_outlet]
@@ -212,12 +198,12 @@ class Artery(object):
         dFn_v_dx = grad(self.Un[1])[0]*v1*dx + Fn_v_ds - Fn_dv_dx
 
 
-        S_v_dx = - 2*sqrt(pi)/self.db/Re*q/sqrt(A+DOLFIN_EPS)*v2*dx\
+        S_v_dx = - 2*sqrt(pi)/self.db/self.Re*q/sqrt(A+DOLFIN_EPS)*v2*dx\
                + (2*sqrt(A+DOLFIN_EPS)*(sqrt(pi)*self.f
                                        +sqrt(self.A0)*self.dfdr)\
                  -(A+DOLFIN_EPS)*self.dfdr)*self.drdx*v2*dx
 
-        Sn_v_dx = -2*sqrt(pi)/self.db/Re*self.Un[1]/sqrt(self.Un[0])*v2*dx\
+        Sn_v_dx = -2*sqrt(pi)/self.db/self.Re*self.Un[1]/sqrt(self.Un[0])*v2*dx\
                 + (2*sqrt(self.Un[0])*(sqrt(pi)*self.f+sqrt(self.A0)*self.dfdr)\
                   -(self.Un[0])*self.dfdr)*self.drdx*v2*dx
 
@@ -236,12 +222,7 @@ class Artery(object):
         """
         F = self.variational_form
         J = derivative(F, self.U)
-        prob = NonlinearVariationalProblem(F, self.U, self.bcs, J=J)
-        sol = NonlinearVariationalSolver(prob)
-        sol.parameters['newton_solver']['linear_solver'] = 'mumps'
-        sol.parameters['newton_solver']['lu_solver']['reuse_factorization'] = True
-        sol.parameters['newton_solver']['maximum_iterations'] = 1000
-        sol.solve()
+        solve(F == 0, self.U, self.bcs, J=J)
 
 
     def update_solution(self):
@@ -255,10 +236,9 @@ class Artery(object):
         """
         Calculates pressure.
         """
-        self.pn.assign(Expression('p0 + f*(1-sqrt(A0/A))', degree=2,
-                                    p0=self.param['p0'],
-                                    f=self.f, A0=self.A0,
-                                    A=self.Un.split(True)[0]))
+        self.pn.assign(Expression('p0 + f*(1-sqrt(A0/A))', degree=2, p0=self.p0,
+                                  f=self.f, A0=self.A0, A=self.Un.split(True)[0]
+                                  ))
 
 
     def compute_pressure(self, f, A0, A):
@@ -296,9 +276,7 @@ class Artery(object):
         return : float
             Pressure at the outlet
         """
-        L = self.param['L']
-        p0 = self.param['p0']
-        return p0 + self.f(L)*(1-np.sqrt(self.A0(L)/A))
+        return self.p0 + self.f(self.L)*(1-np.sqrt(self.A0(self.L)/A))
 
 
     def CFL_term(self, x, A, q):
@@ -319,10 +297,8 @@ class Artery(object):
         return : float
             CFL number
         """
-        rho = self.param['rho']
-        denom_plus = q/A+np.sqrt(self.f(x)/2/rho*np.sqrt(self.A0(x)/A))
-        denom_minus = q/A-np.sqrt(self.f(x)/2/rho*np.sqrt(self.A0(x)/A))
-        return 1/max(abs(denom_plus), abs(denom_minus))
+        return 1/np.abs(q/A+np.sqrt(self.f(x)/2/self.rho\
+                                   *np.sqrt(self.A0(x)/A)))
 
 
     def check_CFL(self, x, A, q):
