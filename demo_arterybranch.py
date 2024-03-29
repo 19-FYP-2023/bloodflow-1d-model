@@ -13,6 +13,7 @@ def main(config_location):
     """
     param = af.ParamParser()
 
+    print(param)
     # Create artery network
     an = af.ArteryNetwork(param)
 
