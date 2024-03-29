@@ -121,9 +121,9 @@ class ArteryNetwork(object):
         j = 0
         for i in self.range_leaf_arteries:
             if self.arteries[i] != None:
-                self.arteries[i].param['R1'] = self.nondim['R1'][j]
-                self.arteries[i].param['R2'] = self.nondim['R2'][j]
-                self.arteries[i].param['CT'] = self.nondim['CT'][j]
+                self.arteries[i].param['R1'] = self.nondim['R1']
+                self.arteries[i].param['R2'] = self.nondim['R2']
+                self.arteries[i].param['CT'] = self.nondim['CT']
                 j += 1
 
         self.define_geometry()
