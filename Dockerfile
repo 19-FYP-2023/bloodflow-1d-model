@@ -19,6 +19,8 @@ RUN sudo apt-get autoremove
 # RUN python3 app.py
 RUN git clone https://github.com/19-FYP-2023/bloodflow-1d-model.git
 
+RUN cd bloodflow && sudo python3 setup.py install && cd ..
+
 CMD ["python3","/bloodflow/app.py"]
 
 
