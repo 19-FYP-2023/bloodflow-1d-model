@@ -46,3 +46,12 @@ docker run -it arteryfe:2017.2.0 /bin/bash
 cd bloodflow-1d-model/
 sudo python3 setup.py install
 python3 demo_arterybranch.py config/demo_arterybranch.cfg
+
+Ru = 0.42,0.18,0.22
+Rd = 0.24,0.14,0.21
+L = 48.5,27,7.7
+
+org 
+Ru = 0.37,0.177,0.177
+Rd = 0.37,0.17,0.17
+L = 20.8,17.7,17.6
