@@ -45,4 +45,4 @@ docker build --no-cache -t arteryfe:2017.2.0 .
 docker run -it arteryfe:2017.2.0 /bin/bash
 cd bloodflow-1d-model/
 sudo python3 setup.py install
-python3 demo_arterybranch.py --cfg config/demo_arterybranch.cfg
+python3 demo_arterybranch.py config/demo_arterybranch.cfg
