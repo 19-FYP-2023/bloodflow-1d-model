@@ -53,7 +53,7 @@ setup(
     packages=find_packages(exclude=['config', 'data', 'docs', 'paper',
                             'tests']),  # Required
 
-    install_requires=[ 'h5py==2.7.0', 'fenics == 2017.2.0', 'numpy'],  # Optional
+    install_requires=['fenics == 2017.2.0', 'numpy', 'h5py'],  # Optional
     extras_require={  # Optional
         'test': ['pytest3'],
     },
