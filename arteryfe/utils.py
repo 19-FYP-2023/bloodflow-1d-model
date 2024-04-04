@@ -289,9 +289,9 @@ def plot_matrix(t, x, M, label, output):
     print('Saving matrix to %s.' % (output))
     plt.savefig(output)
 
-    np.save(output+'_M.npy',M)
-    np.save(output+'_x.npy',x)
-    np.save(output+'_t.npy',t)
+    np.save(output[:-4]+'_M.npy',M)
+    np.save(output[:-4]+'_x.npy',x)
+    np.save(output[:-4]+'_t.npy',t)
 
 
 
