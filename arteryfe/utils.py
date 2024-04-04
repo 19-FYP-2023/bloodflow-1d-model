@@ -289,6 +289,11 @@ def plot_matrix(t, x, M, label, output):
     print('Saving matrix to %s.' % (output))
     plt.savefig(output)
 
+    np.save(output+'_M.npy',M)
+    np.save(output+'_x.npy',x)
+    np.save(output+'_t.npy',t)
+
+
 
 def is_near(a, b, tol=1.e-11, reltol=1.e-10):
     """
