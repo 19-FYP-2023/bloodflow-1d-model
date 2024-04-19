@@ -47,6 +47,10 @@ cd bloodflow-1d-model/
 sudo python3 setup.py install
 python3 demo_arterybranch.py config/demo_arterybranch.cfg
 
+python3 postprocess.py output/4cycles_last/data.cfg
+
+docker cp container:/home/fenics/bloodflow-1d-model/output ./out
+
 Ru = 0.42,0.18,0.22
 Rd = 0.24,0.14,0.21
 L = 48.5,27,7.7
