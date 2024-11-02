@@ -51,7 +51,7 @@ python3 postprocess.py output/4cycles_last/data.cfg
 
 docker rm -v -f $(docker ps -qa)
 
-
+docker rmi -f $(docker images -aq)
 
 docker cp ffdd7ce6ecd8:/home/fenics/bloodflow-1d-model/output /home/dumindu/modeling/out
 
