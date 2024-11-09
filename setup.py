@@ -37,7 +37,7 @@ setup(
     keywords='fenicsx blood flow simulation',  # Optional
     packages=find_packages(exclude=['contrib', 'docs', 'tests']),  # Required
     python_requires='>=3.7, <4',
-    install_requires=['numpy', 'mpi4py', 'fenics-dolfinx', 'matplotlib', 'scipy'],  # Optional
+    install_requires=['numpy', 'mpi4py', 'fenics-ffc', 'matplotlib', 'scipy'],  # Optional
     project_urls={  # Optional
         'Bug Reports': 'https://github.com/yourusername/arteryfe/issues',
         'Source': 'https://github.com/yourusername/arteryfe',
