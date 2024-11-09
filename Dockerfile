@@ -1,4 +1,4 @@
-FROM quay.io/fenicsproject/stable:2017.2.0
+FROM quay.io/fenicsproject/stable:current
 
 USER root
 
