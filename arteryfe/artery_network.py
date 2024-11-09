@@ -1,9 +1,10 @@
+import numpy.linalg as npl
 import sys
 import numpy as np
-import numpy.linalg as npl
-
 import configparser
-from dolfin import *
+from mpi4py import MPI
+import ufl
+from dolfinx import mesh, fem, io
 
 from arteryfe.artery import Artery
 from arteryfe.utils import *
