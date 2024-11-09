@@ -53,7 +53,7 @@ docker rm -v -f $(docker ps -qa)
 
 
 
-docker cp ffdd7ce6ecd8:/home/fenics/bloodflow-1d-model/output /home/dumindu/modeling/out
+docker cp 333d5261279d:/home/fenics/bloodflow-1d-model/output /home/dumindu/modeling/out
 
 Ru = 0.42,0.18,0.22
 Rd = 0.24,0.14,0.21

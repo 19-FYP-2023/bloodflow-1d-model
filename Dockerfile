@@ -19,7 +19,18 @@ RUN sudo apt-get autoremove
 # RUN python3 app.py
 RUN git clone https://github.com/19-FYP-2023/bloodflow-1d-model.git
 
+RUN rm -f /home/fenics/bloodflow-1d-model/data/example_inlet.csv
+COPY Input/example_inlet.csv /home/fenics/bloodflow-1d-model/data
+
 RUN cd bloodflow-1d-model && sudo python3 setup.py install && cd ..
+
+# RUN cd bloodflow-1d-model && sudo python3 demo_arterybranch.py config/demo_arterybranch.cfg && cd ..
+
+# RUN cd bloodflow-1d-model && sudo python3 demo_arterybranch.py config/demo_arterybranch.cfg && cd ..
+
+# RUN cd bloodflow-1d-model && sudo python3 postprocess.py output/4cycles_last/data.cfg && cd ..
+
+# RUN cd bloodflow-1d-model && sudo python3 postprocess.py output/4cycles_last/data.cfg && cd ..
 
 # RUN cd bloodflow-1d-model && python3 demo_arterybranch.py --cfg config/demo_arterybranch.cfg && cd ..
 
