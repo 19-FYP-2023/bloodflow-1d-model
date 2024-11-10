@@ -1,4 +1,5 @@
-FROM quay.io/fenicsproject/stable:current
+#FROM quay.io/fenicsproject/stable:current
+FROM dolfinx/dolfinx:stable
 
 USER root
 
