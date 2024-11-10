@@ -1,6 +1,6 @@
 import numpy as np
 
-from dolfinx import mesh, fem, io
+from dolfinx import mesh, fem, io, log
 import ufl
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -339,9 +339,9 @@ def write_file(f, u, label, t):
     t : float
         Time point
     """
-    PETSc.Sys.setLoggerLevel(PETSc.Log.Level.ERROR)
+    log.set_log_level(log.LogLevel.ERROR)
     f.write_checkpoint(u, label, t)
-    PETSc.Sys.setLoggerLevel(PETSc.Log.Level.WARNING)
+    log.set_log_level(log.LogLevel.WARNING)
 
 
 def read_file(f, u, label, i):
@@ -359,9 +359,9 @@ def read_file(f, u, label, i):
     i : int
         Index of time point
     """
-    PETSc.Sys.setLoggerLevel(PETSc.Log.Level.ERROR)
+    log.set_log_level(log.LogLevel.ERROR)
     f.read_checkpoint(u, label, i)
-    PETSc.Sys.setLoggerLevel(PETSc.Log.Level.WARNING)
+    log.set_log_level(log.LogLevel.WARNING)
 
 
 def print_progress(n_cycle, n, dt):
