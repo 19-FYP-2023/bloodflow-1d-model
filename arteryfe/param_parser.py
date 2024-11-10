@@ -1,6 +1,6 @@
 __author__ = "Alexandra Diem <alexandra@simula.no>"
 
-from configparser import SafeConfigParser
+from configparser import ConfigParser
 import numpy as np
 
 
@@ -23,7 +23,7 @@ class ParamParser(object):
         Reads config file provided in self.fparams.
         Parameters are stored as dictionary params['name'] = value
         """
-        config = SafeConfigParser()
+        config = ConfigParser()
         config.optionxform = str
         config.read(self.fparams)
 

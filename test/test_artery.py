@@ -5,7 +5,7 @@ import numpy as np
 
 import pytest
 
-from configparser import SafeConfigParser
+from configparser import ConfigParser
 import fenics as fn
 
 from arteryfe.utils import *
@@ -223,7 +223,7 @@ def config_location():
 
 @pytest.fixture
 def param(config_location):
-    config = SafeConfigParser()
+    config = ConfigParser()
     config.read(config_location)
 
     # Constructor parameters

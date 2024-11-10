@@ -4,7 +4,7 @@ from dolfinx import mesh, fem, io
 import ufl
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-from configparser import SafeConfigParser
+from configparser import ConfigParser
 from scipy.interpolate import interp1d
 
 
@@ -206,7 +206,7 @@ def read_output(filename):
     return : tuple
         Tuple of all parameters stored in the file
     """
-    config = SafeConfigParser()
+    config = ConfigParser()
     config.read(filename)
 
     order = config.getint('data', 'order')

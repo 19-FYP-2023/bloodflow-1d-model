@@ -2,7 +2,7 @@ import sys
 sys.path.insert(0, 'arteryfe/')
 
 import numpy as np
-from configparser import SafeConfigParser
+from configparser import ConfigParser
 
 import pytest
 
@@ -599,7 +599,7 @@ def test_solve(arterynetwork_def, param):
 
 @pytest.fixture
 def param(config_location):
-    config = SafeConfigParser()
+    config = ConfigParser()
     config.read(config_location)
 
     # Constructor parameters
