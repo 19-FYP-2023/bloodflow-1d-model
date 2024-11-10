@@ -3,9 +3,9 @@ FROM dolfinx/dolfinx:stable
 
 USER root
 
-RUN sudo apt-get update
-RUN sudo apt-get -y install git python3-setuptools
-RUN sudo apt-get autoremove
+RUN apt-get update
+RUN apt-get -y install git python3-setuptools
+RUN apt-get autoremove
 
 # WORKDIR /bloodflow
 # RUN mkdir /bloodflow
