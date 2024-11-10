@@ -5,6 +5,7 @@ import configparser
 from mpi4py import MPI
 import ufl
 from dolfinx import mesh, fem, io
+from petsc4py import PETSc
 
 from arteryfe.artery import Artery
 from arteryfe.utils import *
@@ -54,7 +55,7 @@ class ArteryNetwork(object):
 
     def __init__(self, order, rc, qc, Ru, Rd, L, k1, k2, k3,
                                                 rho, Re, nu, p0, R1, R2, CT):
-        set_log_level(30)
+        PETSc.Sys.setLoggerLevel(PETSc.Log.Level.WARNING)
         self.order = order
         self.arteries = [0] * (2**self.order-1)
         self.range_arteries = range(2**self.order-1)
