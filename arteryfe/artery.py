@@ -1,7 +1,12 @@
 import sys
 import numpy as np
+from math import pi
 
-from dolfin import *
+from dolfinx import mesh, fem, io, DOLFIN_EPS
+from dolfinx.fem import FiniteElement, FunctionSpace, Expression, Function, TestFunctions, DirichletBC, solve
+from dolfinx.mesh import IntervalMesh
+import ufl
+from ufl import split, near, dx, sqrt, derivative, grad
 
 
 class Artery(object):
