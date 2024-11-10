@@ -2,12 +2,13 @@ import sys
 import numpy as np
 from math import pi
 
-from dolfinx import mesh, fem, io, DOLFINX_EPS
+from dolfinx import mesh, fem, io
 from dolfinx.fem import FiniteElement, FunctionSpace, Expression, Function, TestFunctions, DirichletBC, solve
 from dolfinx.mesh import IntervalMesh
 import ufl
 from ufl import split, near, dx, sqrt, derivative, grad
 
+DOLFINX_EPS = 3.0e-16
 
 class Artery(object):
     """
