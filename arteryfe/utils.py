@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from configparser import ConfigParser
 from scipy.interpolate import interp1d
-
+from petsc4py import PETSc
 
 def unit_to_mmHg(p):
     """
@@ -339,9 +339,9 @@ def write_file(f, u, label, t):
     t : float
         Time point
     """
-    set_log_level(40)
+    PETSc.Sys.setLoggerLevel(PETSc.Log.Level.ERROR)
     f.write_checkpoint(u, label, t)
-    set_log_level(30)
+    PETSc.Sys.setLoggerLevel(PETSc.Log.Level.WARNING)
 
 
 def read_file(f, u, label, i):
@@ -359,9 +359,9 @@ def read_file(f, u, label, i):
     i : int
         Index of time point
     """
-    set_log_level(40)
+    PETSc.Sys.setLoggerLevel(PETSc.Log.Level.ERROR)
     f.read_checkpoint(u, label, i)
-    set_log_level(30)
+    PETSc.Sys.setLoggerLevel(PETSc.Log.Level.WARNING)
 
 
 def print_progress(n_cycle, n, dt):
