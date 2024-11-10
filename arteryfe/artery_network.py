@@ -161,8 +161,8 @@ class ArteryNetwork(object):
             Output data directory
         q0 : float
             Initial flow rate in the root vessel
-        theta : float, in the i
-            Weighting parameter for the Crank-Nicolson methodnterval
+        theta : float
+            Weighting parameter for the Crank-Nicolson method, in the interval
             [0, 1]
         """
         self.output_location = output_location
