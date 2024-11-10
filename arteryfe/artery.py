@@ -2,7 +2,7 @@ import sys
 import numpy as np
 from math import pi
 
-from dolfinx import mesh, fem, io, DOLFIN_EPS
+from dolfinx import mesh, fem, io, DOLFINX_EPS
 from dolfinx.fem import FiniteElement, FunctionSpace, Expression, Function, TestFunctions, DirichletBC, solve
 from dolfinx.mesh import IntervalMesh
 import ufl
@@ -185,11 +185,11 @@ class Artery(object):
         Un_v_dx = self.Un[0]*v1*dx + self.Un[1]*v2*dx
 
 
-        F2_v2_ds = (pow(q, 2)/(A+DOLFIN_EPS)\
-                   +self.f*sqrt(self.A0*(A+DOLFIN_EPS)))*v2*ds
+        F2_v2_ds = (pow(q, 2)/(A+DOLFINX_EPS)\
+                   +self.f*sqrt(self.A0*(A+DOLFINX_EPS)))*v2*ds
 
-        F2_dv2_dx = (pow(q, 2)/(A+DOLFIN_EPS)\
-                    +self.f*sqrt(self.A0*(A+DOLFIN_EPS)))*grad(v2)[0]*dx
+        F2_dv2_dx = (pow(q, 2)/(A+DOLFINX_EPS)\
+                    +self.f*sqrt(self.A0*(A+DOLFINX_EPS)))*grad(v2)[0]*dx
 
         dF_v_dx = grad(q)[0]*v1*dx + F2_v2_ds - F2_dv2_dx
 
@@ -203,10 +203,10 @@ class Artery(object):
         dFn_v_dx = grad(self.Un[1])[0]*v1*dx + Fn_v_ds - Fn_dv_dx
 
 
-        S_v_dx = - 2*sqrt(pi)/self.db/self.Re*q/sqrt(A+DOLFIN_EPS)*v2*dx\
-               + (2*sqrt(A+DOLFIN_EPS)*(sqrt(pi)*self.f
+        S_v_dx = - 2*sqrt(pi)/self.db/self.Re*q/sqrt(A+DOLFINX_EPS)*v2*dx\
+               + (2*sqrt(A+DOLFINX_EPS)*(sqrt(pi)*self.f
                                        +sqrt(self.A0)*self.dfdr)\
-                 -(A+DOLFIN_EPS)*self.dfdr)*self.drdx*v2*dx
+                 -(A+DOLFINX_EPS)*self.dfdr)*self.drdx*v2*dx
 
         Sn_v_dx = -2*sqrt(pi)/self.db/self.Re*self.Un[1]/sqrt(self.Un[0])*v2*dx\
                 + (2*sqrt(self.Un[0])*(sqrt(pi)*self.f+sqrt(self.A0)*self.dfdr)\
