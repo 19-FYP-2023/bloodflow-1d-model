@@ -99,20 +99,20 @@ The variational form is implemented in :meth:`arteryfe.Artery.define_solution` a
   # Terms for variational form
   U_v_dx = A*v1*dx + q*v2*dx
   Un_v_dx = self.Un[0]*v1*dx + self.Un[1]*v2*dx
-  F2_v2_ds = (pow(q, 2)/(A+DOLFIN_EPS)\
-               +self.f*sqrt(self.A0*(A+DOLFIN_EPS)))*v2*ds
-  F2_dv2_dx = (pow(q, 2)/(A+DOLFIN_EPS)\
-                +self.f*sqrt(self.A0*(A+DOLFIN_EPS)))*grad(v2)[0]*dx
+  F2_v2_ds = (pow(q, 2)/(A+DOLFINX_EPS)\
+               +self.f*sqrt(self.A0*(A+DOLFINX_EPS)))*v2*ds
+  F2_dv2_dx = (pow(q, 2)/(A+DOLFINX_EPS)\
+                +self.f*sqrt(self.A0*(A+DOLFINX_EPS)))*grad(v2)[0]*dx
   dF_v_dx = grad(q)[0]*v1*dx + F2_v2_ds - F2_dv2_dx
   Fn_v_ds = (pow(self.Un[1], 2)/(self.Un[0])\
               +self.f*sqrt(self.A0*(self.Un[0])))*v2*ds
   Fn_dv_dx = (pow(self.Un[1], 2)/(self.Un[0])\
                +self.f*sqrt(self.A0*(self.Un[0])))*grad(v2)[0]*dx
   dFn_v_dx = grad(self.Un[1])[0]*v1*dx + Fn_v_ds - Fn_dv_dx
-  S_v_dx = - 2*sqrt(pi)/self.db/self.Re*q/sqrt(A+DOLFIN_EPS)*v2*dx\
-           + (2*sqrt(A+DOLFIN_EPS)*(sqrt(pi)*self.f
+  S_v_dx = - 2*sqrt(pi)/self.db/self.Re*q/sqrt(A+DOLFINX_EPS)*v2*dx\
+           + (2*sqrt(A+DOLFINX_EPS)*(sqrt(pi)*self.f
                                    +sqrt(self.A0)*self.dfdr)\
-             -(A+DOLFIN_EPS)*self.dfdr)*self.drdx*v2*dx
+             -(A+DOLFINX_EPS)*self.dfdr)*self.drdx*v2*dx
   Sn_v_dx = -2*sqrt(pi)/self.db/self.Re*self.Un[1]/sqrt(self.Un[0])*v2*dx\
             + (2*sqrt(self.Un[0])*(sqrt(pi)*self.f+sqrt(self.A0)*self.dfdr)\
               -(self.Un[0])*self.dfdr)*self.drdx*v2*dx
