@@ -6,7 +6,7 @@ from dolfinx import mesh, fem, io
 from dolfinx.cpp.fem import FiniteElement_float64 as FiniteElement
 from dolfinx.fem import FunctionSpace, Expression, Function, DirichletBC
 from dolfinx.mesh import create_interval
-from dolfinx.fem.petsc import NonlinearVariationalProblem, NewtonSolver
+from dolfinx.fem.petsc import NonlinearProblem, NewtonSolver
 import ufl
 from ufl import split, near, dx, sqrt, derivative, grad, TestFunction
 from petsc4py import PETSc
@@ -233,7 +233,7 @@ class Artery(object):
         """
         F = self.variational_form
         J = derivative(F, self.U)
-        prob = NonlinearVariationalProblem(F, self.U, self.bcs, J=J)
+        prob = NonlinearProblem(F, self.U, self.bcs, J=J)
         sol = NewtonSolver(prob)
 
         # Create the PETSc SNES (Scalable Nonlinear Equations Solvers) solver
