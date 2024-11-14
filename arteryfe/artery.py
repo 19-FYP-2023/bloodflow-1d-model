@@ -4,10 +4,10 @@ from math import pi
 
 from dolfinx import mesh, fem, io
 from dolfinx.cpp.fem import FiniteElement_float64 as FiniteElement
-from dolfinx.fem import FunctionSpace, Expression, Function, TestFunctions, DirichletBC, solve
+from dolfinx.fem import FunctionSpace, Expression, Function, DirichletBC, solve
 from dolfinx.mesh import IntervalMesh
 import ufl
-from ufl import split, near, dx, sqrt, derivative, grad
+from ufl import split, near, dx, sqrt, derivative, grad, TestFunction
 
 DOLFINX_EPS = 3.0e-16
 
@@ -143,7 +143,7 @@ class Artery(object):
         A, q = split(self.U)
 
         # Test functions
-        v1, v2 = TestFunctions(self.V2)
+        v1, v2 = TestFunction(self.V2)
 
         # Current solution, initialised
         self.Un = Function(self.V2)
