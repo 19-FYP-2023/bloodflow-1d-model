@@ -3,7 +3,8 @@ import numpy as np
 from math import pi
 
 from dolfinx import mesh, fem, io
-from dolfinx.fem import FiniteElement, FunctionSpace, Expression, Function, TestFunctions, DirichletBC, solve
+from dolfinx.cpp.fem import FiniteElement_float64 as FiniteElement
+from dolfinx.fem import FunctionSpace, Expression, Function, TestFunctions, DirichletBC, solve
 from dolfinx.mesh import IntervalMesh
 import ufl
 from ufl import split, near, dx, sqrt, derivative, grad
