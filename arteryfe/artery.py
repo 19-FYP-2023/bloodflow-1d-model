@@ -5,7 +5,7 @@ from math import pi
 from dolfinx import mesh, fem, io
 from dolfinx.cpp.fem import FiniteElement_float64 as FiniteElement
 from dolfinx.fem import FunctionSpace, Expression, Function, DirichletBC
-from dolfinx.mesh import IntervalMesh
+from dolfinx.mesh import create_interval
 from dolfinx.fem.petsc import NonlinearVariationalProblem, NewtonSolver
 import ufl
 from ufl import split, near, dx, sqrt, derivative, grad, TestFunction
@@ -102,7 +102,8 @@ class Artery(object):
 
         self.db = np.sqrt(self.nu*self.T/2/np.pi)
 
-        self.mesh = IntervalMesh(self.Nx, 0, self.L)
+        #self.mesh = IntervalMesh(self.Nx, 0, self.L)
+        self.mesh = create_interval(MPI.COMM_WORLD, self.Nx, [0, self.L])
         self.elV = FiniteElement('CG', self.mesh.ufl_cell(), 1)
         self.V = FunctionSpace(self.mesh, self.elV)
         self.V2 = FunctionSpace(self.mesh, self.elV*self.elV)
