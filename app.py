@@ -2,6 +2,7 @@
 print("Test Image")
 # print("Current Location :", os.getcwd())
 # print(os.listdir())
+import dolfinx
 
-import petsc4py
-print(dir(petsc4py.PETSc))
+
+print(dir(dolfinx.fem))
