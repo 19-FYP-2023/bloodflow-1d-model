@@ -8,11 +8,13 @@ from dolfinx.fem import FunctionSpace, Expression, Function, DirichletBC
 from dolfinx.mesh import create_interval
 from dolfinx.fem.petsc import NonlinearProblem
 import ufl
-from ufl import split, near, dx, sqrt, derivative, grad, TestFunction
+from ufl import split, dx, sqrt, derivative, grad, TestFunction
 from petsc4py import PETSc
 from mpi4py import MPI
 
 DOLFINX_EPS = 3.0e-16
+def near(x, value, tol=1e-14):
+    return np.isclose(x, value, atol=tol)
 
 class Artery(object):
     """
