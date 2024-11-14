@@ -6,8 +6,11 @@ from dolfinx import mesh, fem, io
 from dolfinx.cpp.fem import FiniteElement_float64 as FiniteElement
 from dolfinx.fem import FunctionSpace, Expression, Function, DirichletBC, solve
 from dolfinx.mesh import IntervalMesh
+from dolfinx.fem.petsc import NonlinearVariationalProblem, NewtonSolver
 import ufl
 from ufl import split, near, dx, sqrt, derivative, grad, TestFunction
+from petsc4py import PETSc
+from mpi4py import MPI
 
 DOLFINX_EPS = 3.0e-16
 
@@ -229,7 +232,25 @@ class Artery(object):
         """
         F = self.variational_form
         J = derivative(F, self.U)
-        solve(F == 0, self.U, self.bcs, J=J)
+        prob = NonlinearVariationalProblem(F, self.U, self.bcs, J=J)
+        sol = NewtonSolver(prob)
+
+        # Create the PETSc SNES (Scalable Nonlinear Equations Solvers) solver
+        solver = PETSc.SNES().create(MPI.COMM_WORLD)
+
+        # Set the nonlinear problem for the solver
+        solver.setFunction(prob.F, prob.b)
+        solver.setJacobian(prob.J, prob.A)
+
+        # Set solver options (similar to setting parameters in DOLFIN)
+        solver.getKSP().setType("preonly")       # Set KSP type (e.g., 'preonly' for direct solvers)
+        solver.getKSP().getPC().setType("lu")    # Use LU decomposition
+        solver.getKSP().getPC().setFactorSolverType("mumps")  # Use MUMPS as the LU solver
+        solver.setTolerances(max_it=1000)        # Set maximum number of iterations
+
+        # Solve the nonlinear problem
+        solver.solve(None, self.U.vector)
+
 
 
     def update_solution(self):
