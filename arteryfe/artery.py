@@ -143,7 +143,7 @@ class Artery(object):
         A, q = split(self.U)
 
         # Test functions
-        v1, v2 = TestFunction(self.V2)
+        v1, v2 = split(TestFunction(self.V2))
 
         # Current solution, initialised
         self.Un = Function(self.V2)
