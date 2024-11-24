@@ -55,8 +55,6 @@ class Artery(object):
     p0 : float
         Diastolic pressure
     """
-
-
     def __init__(self, root_vessel, end_vessel, rc, qc, Ru, Rd, L, k1, k2, k3,
                  rho, Re, nu, p0):
         self.root_vessel = root_vessel
@@ -74,11 +72,10 @@ class Artery(object):
         self.nu = nu
         self.p0 = p0
 
-
     def define_geometry(self, Nx, Nt, T, N_cycles):
         """
-        Initialises the artery geometry by creating the spatial refinement,
-        temporal refinement and FEniCS objects.
+        Initializes the artery geometry by creating the spatial refinement,
+        temporal refinement, and dolfinx objects.
 
         Arguments
         ---------
@@ -96,31 +93,33 @@ class Artery(object):
         self.T = T
         self.N_cycles = N_cycles
 
-        self.dx = self.L/self.Nx
-        self.dt = self.T/self.Nt
+        self.dx = self.L / self.Nx
+        self.dt = self.T / self.Nt
 
         # Step for boundary condition computations, starting at normal size
         self.dex = self.dx
+        self.db = np.sqrt(self.nu * self.T / (2 * np.pi))
 
-        self.db = np.sqrt(self.nu*self.T/2/np.pi)
-
-        #self.mesh = IntervalMesh(self.Nx, 0, self.L)
+        # Mesh and Function Spaces
         self.mesh = create_interval(MPI.COMM_WORLD, self.Nx, [0, self.L])
-        self.elV = FiniteElement('CG', self.mesh.ufl_cell(), 1)
-        self.V = FunctionSpace(self.mesh, self.elV)
-        self.V2 = FunctionSpace(self.mesh, self.elV*self.elV)
+        element = ufl.FiniteElement("CG", self.mesh.ufl_cell(), 1)
+        self.V = FunctionSpace(self.mesh, element)
 
-        # Initial vessel-radius and deduced quantities
-        self.r0 = Expression('Ru*pow(Rd/Ru, x[0]/L)',
-                             degree=2, Ru=self.Ru, Rd=self.Rd, L=self.L)
-        self.A0 = Expression('pi*pow(r0, 2)', degree=2, r0=self.r0)
-        self.f = Expression('4.0/3.0*(k1*exp(k2*r0) + k3)', degree=2,
-                            k1=self.k1, k2=self.k2, k3=self.k3, r0=self.r0)
-        self.dfdr = Expression('4.0/3.0*k1*k2*exp(k2*r0)', degree=2,
-                               k1=self.k1, k2=self.k2, r0=self.r0)
-        self.drdx = Expression('logRdRu/L*r0', degree=2,
-                               logRdRu=np.log(self.Rd/self.Ru), L=self.L,
-       										r0=self.r0)
+        # Initial vessel-radius and derived quantities
+        x = ufl.SpatialCoordinate(self.mesh)
+        r0_expr = self.Ru * (self.Rd / self.Ru) ** (x[0] / self.L)
+        print(type(r0_expr),type(self.V.element.interpolation_points))
+        self.r0 = Expression(r0_expr, self.V.element.interpolation_points())
+
+        self.A0 = Expression(ufl.pi * r0_expr**2, self.V.element.interpolation_points)
+        f_expr = (4.0 / 3.0) * (self.k1 * ufl.exp(self.k2 * r0_expr) + self.k3)
+        self.f = Expression(f_expr, self.V.element.interpolation_points())
+
+        dfdr_expr = (4.0 / 3.0) * self.k1 * self.k2 * ufl.exp(self.k2 * r0_expr)
+        self.dfdr = Expression(dfdr_expr, self.V.element.interpolation_points())
+
+        drdx_expr = (np.log(self.Rd / self.Ru) / self.L) * r0_expr
+        self.drdx = Expression(drdx_expr, self.V.element.interpolation_points())
 
 
     def define_solution(self, q0, theta=0.5, bc_tol=1.e-14):
