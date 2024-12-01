@@ -107,19 +107,27 @@ class Artery(object):
 
         # Initial vessel-radius and derived quantities
         x = ufl.SpatialCoordinate(self.mesh)
+        
+        # Use ufl expressions directly
         r0_expr = self.Ru * (self.Rd / self.Ru) ** (x[0] / self.L)
-        print(type(r0_expr),type(self.V.element.interpolation_points))
-        self.r0 = Expression(r0_expr, self.V.element.interpolation_points())
+        self.r0 = fem.Function(self.V)
+        self.r0.interpolate(lambda x: self.Ru * (self.Rd / self.Ru) ** (x[0] / self.L))
 
-        self.A0 = Expression(ufl.pi * r0_expr**2, self.V.element.interpolation_points)
+        self.A0 = fem.Function(self.V)
+        self.A0.interpolate(lambda x: pi * (self.Ru * (self.Rd / self.Ru) ** (x[0] / self.L))**2)
+
         f_expr = (4.0 / 3.0) * (self.k1 * ufl.exp(self.k2 * r0_expr) + self.k3)
-        self.f = Expression(f_expr, self.V.element.interpolation_points())
+        self.f = fem.Function(self.V)
+        self.f.interpolate(lambda x: (4.0 / 3.0) * (self.k1 * np.exp(self.k2 * (self.Ru * (self.Rd / self.Ru) ** (x[0] / self.L))) + self.k3))
 
         dfdr_expr = (4.0 / 3.0) * self.k1 * self.k2 * ufl.exp(self.k2 * r0_expr)
-        self.dfdr = Expression(dfdr_expr, self.V.element.interpolation_points())
+        self.dfdr = fem.Function(self.V)
+        self.dfdr.interpolate(lambda x: (4.0 / 3.0) * self.k1 * self.k2 * np.exp(self.k2 * (self.Ru * (self.Rd / self.Ru) ** (x[0] / self.L))))
 
         drdx_expr = (np.log(self.Rd / self.Ru) / self.L) * r0_expr
-        self.drdx = Expression(drdx_expr, self.V.element.interpolation_points())
+        self.drdx = fem.Function(self.V)
+        self.drdx.interpolate(lambda x: (np.log(self.Rd / self.Ru) / self.L) * (self.Ru * (self.Rd / self.Ru) ** (x[0] / self.L)))
+
 
 
     def define_solution(self, q0, theta=0.5, bc_tol=1.e-14):
