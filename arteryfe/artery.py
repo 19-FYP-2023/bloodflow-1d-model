@@ -104,7 +104,7 @@ class Artery(object):
         self.mesh = create_interval(MPI.COMM_WORLD, self.Nx, [0, self.L])
         element = ufl.FiniteElement("CG", self.mesh.ufl_cell(), 1)
         self.V = FunctionSpace(self.mesh, element)
-        self.V2 = FunctionSpace(self.mesh, ufl.MixedElement([element, element]))
+        self.V2 = FunctionSpace(self.mesh, element*element)
         
         # Initial vessel-radius and derived quantities
         x = ufl.SpatialCoordinate(self.mesh)
