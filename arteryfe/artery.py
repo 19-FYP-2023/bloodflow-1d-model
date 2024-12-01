@@ -4,7 +4,7 @@ from math import pi
 
 from dolfinx import mesh, fem, io
 #from dolfinx.cpp.fem import FiniteElement_float64 as FiniteElement
-from dolfinx.fem import FunctionSpace, Expression, Function, DirichletBC
+from dolfinx.fem import FunctionSpace, Expression, Function, dirichletbc
 from dolfinx.mesh import create_interval
 from dolfinx.fem.petsc import NonlinearProblem
 import ufl
@@ -104,7 +104,7 @@ class Artery(object):
         self.mesh = create_interval(MPI.COMM_WORLD, self.Nx, [0, self.L])
         element = ufl.FiniteElement("CG", self.mesh.ufl_cell(), 1)
         self.V = FunctionSpace(self.mesh, element)
-        self.V2 = FunctionSpace(self.mesh, element*element)
+        self.V2 = FunctionSpace(self.mesh, ufl.MixedElement([element, element]))
         
         # Initial vessel-radius and derived quantities
         x = ufl.SpatialCoordinate(self.mesh)
@@ -161,80 +161,73 @@ class Artery(object):
 
         # Current solution, initialised
         self.Un = Function(self.V2)
-        self.Un.assign(Expression(('A0', 'q0'), degree=2,
-                                  A0=self.A0, q0=self.q0))
+        A0_init = Function(self.V)
+        A0_init.interpolate(lambda x: np.pi * (self.Ru * (self.Rd / self.Ru) ** (x[0] / self.L))**2)
+
+        self.Un.interpolate(lambda x: np.vstack((A0_init.x.array, np.full_like(x[0], q0))).T)
 
         # Current pressure, initialised
         self.pn = Function(self.V)
-        self.pn.assign(Expression('p0', degree=2, p0=self.p0))
+        self.pn.interpolate(lambda x: np.full_like(x[0], self.p0))
 
-        # Boundary conditions (spatial)
-        def inlet_bdry(x, on_boundary):
-            return on_boundary and near(x[0], 0, bc_tol)
+        # Boundary conditions
+        def inlet_bdry(x):
+            return np.isclose(x[0], 0, atol=bc_tol)
 
-        def outlet_bdry(x, on_boundary):
-            return on_boundary and near(x[0], self.L, bc_tol)
+        def outlet_bdry(x):
+            return np.isclose(x[0], self.L, atol=bc_tol)
 
-        # Inlet boundary conditions
         if self.root_vessel:
-            self._q_in = Expression('value', degree=0, value=self.q0)
-            bc_inlet = DirichletBC(self.V2.sub(1), self._q_in, inlet_bdry)
+            self._q_in = Function(self.V)
+            self._q_in.interpolate(lambda x: np.full_like(x[0], self.q0))
+            bc_inlet = fem.dirichletbc(self._q_in, self.V2.sub(1))
         else:
-            self._U_in = Expression(('A', 'q'), degree=0,
-                                    A=self.A0(0), q=self.q0)
-            bc_inlet = DirichletBC(self.V2, self._U_in, inlet_bdry)
+            self._U_in = Function(self.V2)
+            self._U_in.interpolate(lambda x: np.vstack((A0_init.x.array[0], q0)).T)
+            bc_inlet = dirichletbc(self._U_in, self.V2)
 
-        # Outlet boundary conditions
         if self.end_vessel:
-            self._A_out = Expression('value', degree=0, value=self.A0(self.L))
-            bc_outlet = DirichletBC(self.V2.sub(0), self._A_out, outlet_bdry)
+            self._A_out = Function(self.V)
+            self._A_out.interpolate(lambda x: np.full_like(x[0], A0_init.x.array[-1]))
+            bc_outlet = dirichletbc(self._A_out, self.V2.sub(0))
         else:
-            self._U_out = Expression(('A', 'q'), degree=0,
-                                     A=self.A0(self.L), q=self.q0)
-            bc_outlet = DirichletBC(self.V2, self._U_out, outlet_bdry)
+            self._U_out = Function(self.V2)
+            self._U_out.interpolate(lambda x: np.vstack((A0_init.x.array[-1], q0)).T)
+            bc_outlet = dirichletbc(self._U_out, self.V2)
 
         self.bcs = [bc_inlet, bc_outlet]
 
-        # Terms for variational form
-        U_v_dx = A*v1*dx + q*v2*dx
+        # Define variational form
+        U_v_dx = A * v1 * ufl.dx + q * v2 * ufl.dx
+        Un_v_dx = self.Un[0] * v1 * ufl.dx + self.Un[1] * v2 * ufl.dx
 
-        Un_v_dx = self.Un[0]*v1*dx + self.Un[1]*v2*dx
+        F2_v2_ds = (q**2 / (A + DOLFINX_EPS) 
+                    + self.f * ufl.sqrt(self.A0 * (A + DOLFINX_EPS))) * v2 * ufl.ds
+        F2_dv2_dx = (q**2 / (A + DOLFINX_EPS) 
+                     + self.f * ufl.sqrt(self.A0 * (A + DOLFINX_EPS))) * ufl.grad(v2)[0] * ufl.dx
+        dF_v_dx = ufl.grad(q)[0] * v1 * ufl.dx + F2_v2_ds - F2_dv2_dx
 
+        Fn_v_ds = (self.Un[1]**2 / self.Un[0] 
+                   + self.f * ufl.sqrt(self.A0 * self.Un[0])) * v2 * ufl.ds
+        Fn_dv_dx = (self.Un[1]**2 / self.Un[0] 
+                    + self.f * ufl.sqrt(self.A0 * self.Un[0])) * ufl.grad(v2)[0] * ufl.dx
+        dFn_v_dx = ufl.grad(self.Un[1])[0] * v1 * ufl.dx + Fn_v_ds - Fn_dv_dx
 
-        F2_v2_ds = (pow(q, 2)/(A+DOLFINX_EPS)\
-                   +self.f*sqrt(self.A0*(A+DOLFINX_EPS)))*v2*ds
+        S_v_dx = (-2 * ufl.sqrt(pi) / self.db / self.Re * q / ufl.sqrt(A + DOLFINX_EPS) * v2 * ufl.dx 
+                  + (2 * ufl.sqrt(A + DOLFINX_EPS) * (ufl.sqrt(pi) * self.f + ufl.sqrt(self.A0) * self.dfdr) 
+                     - A * self.dfdr) * self.drdx * v2 * ufl.dx)
 
-        F2_dv2_dx = (pow(q, 2)/(A+DOLFINX_EPS)\
-                    +self.f*sqrt(self.A0*(A+DOLFINX_EPS)))*grad(v2)[0]*dx
-
-        dF_v_dx = grad(q)[0]*v1*dx + F2_v2_ds - F2_dv2_dx
-
-
-        Fn_v_ds = (pow(self.Un[1], 2)/(self.Un[0])\
-                  +self.f*sqrt(self.A0*(self.Un[0])))*v2*ds
-
-        Fn_dv_dx = (pow(self.Un[1], 2)/(self.Un[0])\
-                   +self.f*sqrt(self.A0*(self.Un[0])))*grad(v2)[0]*dx
-
-        dFn_v_dx = grad(self.Un[1])[0]*v1*dx + Fn_v_ds - Fn_dv_dx
-
-
-        S_v_dx = - 2*sqrt(pi)/self.db/self.Re*q/sqrt(A+DOLFINX_EPS)*v2*dx\
-               + (2*sqrt(A+DOLFINX_EPS)*(sqrt(pi)*self.f
-                                       +sqrt(self.A0)*self.dfdr)\
-                 -(A+DOLFINX_EPS)*self.dfdr)*self.drdx*v2*dx
-
-        Sn_v_dx = -2*sqrt(pi)/self.db/self.Re*self.Un[1]/sqrt(self.Un[0])*v2*dx\
-                + (2*sqrt(self.Un[0])*(sqrt(pi)*self.f+sqrt(self.A0)*self.dfdr)\
-                  -(self.Un[0])*self.dfdr)*self.drdx*v2*dx
-
+        Sn_v_dx = (-2 * ufl.sqrt(pi) / self.db / self.Re * self.Un[1] / ufl.sqrt(self.Un[0]) * v2 * ufl.dx 
+                   + (2 * ufl.sqrt(self.Un[0]) * (ufl.sqrt(pi) * self.f + ufl.sqrt(self.A0) * self.dfdr) 
+                
+                      - self.Un[0] * self.dfdr) * self.drdx * v2 * ufl.dx)
         # Variational form
-        self.variational_form = U_v_dx\
-            - Un_v_dx\
-            + self.dt*self.theta*dF_v_dx\
-            + self.dt*(1-self.theta)*dFn_v_dx\
-            - self.dt*self.theta*S_v_dx\
-            - self.dt*(1-self.theta)*Sn_v_dx
+        self.variational_form = U_v_dx 
+        - Un_v_dx 
+        + self.dt * self.theta * dF_v_dx 
+        + self.dt * (1 - self.theta) * dFn_v_dx 
+        - self.dt * self.theta * S_v_dx 
+        - self.dt * (1 - self.theta) * Sn_v_dx
 
 
     def solve(self):
