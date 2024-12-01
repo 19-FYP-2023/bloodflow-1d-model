@@ -164,7 +164,7 @@ class Artery(object):
         A0_init = Function(self.V)
         A0_init.interpolate(lambda x: np.pi * (self.Ru * (self.Rd / self.Ru) ** (x[0] / self.L))**2)
 
-        self.Un.interpolate(lambda x: np.vstack((A0_init.x.array, np.full_like(x[0], q0))).T)
+        self.Un.interpolate(lambda x: np.vstack((A0_init.x.array, self.q0)).T)
 
         # Current pressure, initialised
         self.pn = Function(self.V)
