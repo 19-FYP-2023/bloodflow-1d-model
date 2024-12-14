@@ -90,7 +90,7 @@ class Artery(object):
         # Step for boundary condition computations, starting at normal size
         self.dex = self.dx
 
-        self.db = np.sqrt(self.nu*self.T/2/np.pi)
+        self.db = np.sqrt(self.nu*self.T/(2*np.pi))
 
         self.mesh = IntervalMesh(self.Nx, 0, self.L)
         self.elV = FiniteElement('CG', self.mesh.ufl_cell(), 1)
@@ -101,16 +101,16 @@ class Artery(object):
         self.r0 = Expression('Ru*pow(Rd/Ru, x[0]/L)',
                              degree=2, Ru=self.Ru, Rd=self.Rd, L=self.L)
         self.A0 = Expression('pi*pow(r0, 2)', degree=2, r0=self.r0)
-        self.f = Expression('4.0/3.0*(k1*exp(k2*r0) + k3)', degree=2,
+        self.f = Expression('(4.0/3.0)*(k1*exp(k2*r0) + k3)', degree=2,
                             k1=self.k1, k2=self.k2, k3=self.k3, r0=self.r0)
-        self.dfdr = Expression('4.0/3.0*k1*k2*exp(k2*r0)', degree=2,
+        self.dfdr = Expression('(4.0/3.0)*(k1*k2*exp(k2*r0))', degree=2,
                                k1=self.k1, k2=self.k2, r0=self.r0)
-        self.drdx = Expression('logRdRu/L*r0', degree=2,
+        self.drdx = Expression('(logRdRu/L)*r0', degree=2,
                                logRdRu=np.log(self.Rd/self.Ru), L=self.L,
        										r0=self.r0)
 
 
-    def define_solution(self, q0, theta=0.5, bc_tol=1.e-14):
+    def define_solution(self, q0, theta=0.5, bc_tol=1.e-10):
         """
         Defines FEniCS Function objects, boundary conditions and variational
         form of the problem.
@@ -140,6 +140,7 @@ class Artery(object):
 
         # Current solution, initialised
         self.Un = Function(self.V2)
+        self.Un.set_allow_extrapolation(True)
         self.Un.assign(Expression(('A0', 'q0'), degree=2,
                                   A0=self.A0, q0=self.q0))
 
@@ -216,13 +217,38 @@ class Artery(object):
             - self.dt*(1-self.theta)*Sn_v_dx
 
 
+
     def solve(self):
         """
-        Calls FEniCS's solve() function for the variational form.
+        Solves the nonlinear variational form using PETSc's SNES solver.
         """
-        F = self.variational_form
-        J = derivative(F, self.U)
-        solve(F == 0, self.U, self.bcs, J=J)
+        F = self.variational_form  # Nonlinear form
+        J = derivative(F, self.U)  # Jacobian
+        
+        # Define the problem in terms of SNES
+        problem = NonlinearVariationalProblem(F, self.U, self.bcs, J)
+        
+        # Use the NonlinearVariationalSolver with SNES parameters
+        solver = NonlinearVariationalSolver(problem)
+
+        # Solver parameters for SNES
+        solver_parameters = {
+            "nonlinear_solver": "snes",  # Use SNES as the nonlinear solver
+            "snes_solver": {
+                "method": "newtontr",  # Newton trust-region method, you can choose others like "newtonls" (line search)
+                "line_search": "bt",  # Backtracking line search (optional)
+                "absolute_tolerance": 1e-12,
+                "relative_tolerance": 1e-10,
+                "maximum_iterations": 5000,
+                "linear_solver": "mumps",  # Can use iterative methods like gmres with preconditioners
+                "preconditioner": "ilu",  # ILU preconditioner
+            }
+        }
+        
+        # Apply solver parameters
+        solver.parameters.update(solver_parameters)
+        # Solve the problem
+        solver.solve()
 
 
     def update_solution(self):
@@ -237,8 +263,8 @@ class Artery(object):
         Calculates pressure.
         """
         self.pn.assign(Expression('p0 + f*(1-sqrt(A0/A))', degree=2, p0=self.p0,
-                                  f=self.f, A0=self.A0, A=self.Un.split(True)[0]
-                                  ))
+                                    f=self.f, A0=self.A0, A=self.Un.split(True)[0]
+                                    ))
 
 
     def compute_pressure(self, f, A0, A):
@@ -251,7 +277,7 @@ class Artery(object):
             Elasticity relation
         A0: numpy.array
             Area at rest
-	    A : numpy.array
+        A : numpy.array
             Area
 
         Returns
@@ -298,7 +324,7 @@ class Artery(object):
             CFL number
         """
         return 1/np.abs(q/A+np.sqrt(self.f(x)/2/self.rho\
-                                   *np.sqrt(self.A0(x)/A)))
+                                    *np.sqrt(self.A0(x)/A)))
 
 
     def check_CFL(self, x, A, q):
