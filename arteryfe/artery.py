@@ -220,9 +220,33 @@ class Artery(object):
         """
         Calls FEniCS's solve() function for the variational form.
         """
-        F = self.variational_form
-        J = derivative(F, self.U)
-        solve(F == 0, self.U, self.bcs, J=J)
+        F = self.variational_form  # Nonlinear form
+        J = derivative(F, self.U)  # Jacobian
+        
+        # Define the problem in terms of SNES
+        problem = NonlinearVariationalProblem(F, self.U, self.bcs, J)
+        
+        # Use the NonlinearVariationalSolver with SNES parameters
+        solver = NonlinearVariationalSolver(problem)
+
+        # Solver parameters for SNES
+        solver_parameters = {
+            "nonlinear_solver": "snes",  # Use SNES as the nonlinear solver
+            "snes_solver": {
+                "method": "newtontr",  # Newton trust-region method, you can choose others like "newtonls" (line search)
+                "line_search": "bt",  # Backtracking line search (optional)
+                "absolute_tolerance": 1e-12,
+                "relative_tolerance": 1e-10,
+                "maximum_iterations": 5000,
+                "linear_solver": "mumps",  # Can use iterative methods like gmres with preconditioners
+                "preconditioner": "ilu",  # ILU preconditioner
+            }
+        }
+        
+        # Apply solver parameters
+        solver.parameters.update(solver_parameters)
+        # Solve the problem
+        solver.solve()
 
 
     def update_solution(self):
@@ -298,7 +322,7 @@ class Artery(object):
             CFL number
         """
         return 1/np.abs(q/A+np.sqrt(self.f(x)/2/self.rho\
-                                   *np.sqrt(self.A0(x)/A)))
+                                    *np.sqrt(self.A0(x)/A)))
 
 
     def check_CFL(self, x, A, q):
