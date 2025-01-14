@@ -14,21 +14,16 @@ def main(config_location):
     param = af.ParamParser(config_location)
 
     # Constructor parameters
-    order = param.param['order']
+    no_of_arteries = param.param['no_of_arteries']
     rc = param.param['rc']
     qc = param.param['qc']
-    Ru = param.param['Ru']
-    Rd = param.param['Rd']
-    L = param.param['L']
     k1 = param.param['k1']
     k2 = param.param['k2']
     k3 = param.param['k3']
     rho = param.param['rho']
     nu = param.param['nu']
     p0 = param.param['p0']
-    R1 = param.param['R1']
-    R2 = param.param['R2']
-    CT = param.param['CT']
+    geometric_data_location = param.param['geometric_data_location']
 
     # Geometry parameters
     Nt = param.geo['Nt']
@@ -46,15 +41,15 @@ def main(config_location):
 
     # Import inlet flow data
     T, q_ins = af.read_inlet(inlet_flow_location, Nt)
-
-    # Nondimensionalise data and compute Reynolds' number
-    Ru, Rd, L, k1, k2, k3, Re, nu, p0, R1, R2, CT, q_ins, T =\
-        af.nondimensionalise_parameters(rc, qc, Ru, Rd, L, k1, k2, k3,
-                                   rho, nu, p0, R1, R2, CT, q_ins, T)
+    
+    # nondimensionalize inlet flow
+    q_ins = q_ins/ qc
+    print("q_ins: ", q_ins[0])
+    T = T*qc/rc**3
 
     # Create artery network
-    an = af.ArteryNetwork(order, rc, qc, Ru, Rd, L, k1, k2,
-                        k3,	rho, Re, nu, p0, R1, R2, CT)
+    an = af.ArteryNetwork(no_of_arteries, rc, qc, k1, k2, k3, rho, nu, p0, geometric_data_location)
+    
     an.define_geometry(Nx, Nt, T, N_cycles)
     an.define_solution(output_location, q_ins[0], theta)
 

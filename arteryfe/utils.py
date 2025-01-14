@@ -41,8 +41,7 @@ def mmHg_to_unit(p):
     return 101325/76*p
 
 
-def nondimensionalise_parameters(rc, qc, Ru, Rd, L, k1, k2, k3, rho,
-       nu, p0, R1, R2, CT, q_ins, T):
+def nondimensionalise_network_parameters(rc, qc, k1, k2, k3, rho, nu, p0):
     """
     Nondimensionalise parameters.
 
@@ -52,12 +51,6 @@ def nondimensionalise_parameters(rc, qc, Ru, Rd, L, k1, k2, k3, rho,
         Characteristic radius (length)
     qc : float
         Characteristic flow
-    Ru : float
-        Upstream radius
-    Rd : float
-        Downstream radius
-    L : float
-        Vessel length
     k1 : float
      	First constant from the relation Eh/r0
     k2 : float
@@ -73,27 +66,64 @@ def nondimensionalise_parameters(rc, qc, Ru, Rd, L, k1, k2, k3, rho,
     p0 : float
         Diastolic pressure
 
+        Total compliance of Windkessel model
+
     Returns
     -------
     return : tuple
         Tuple of dimensionless quantities, including Reynold's number
     """
-    Ru = Ru/rc
-    Rd = Rd/rc
-    L = L/rc
+    
     k1 = k1*rc**4/rho/qc**2
     k2 = k2*rc
     k3 = k3*rc**4/rho/qc**2
-    Re = qc/nu/rc
+    Re = qc/(nu*rc)
     nu = nu*rc/qc
     p0 = p0*rc**4/rho/qc**2
-    R1 = R1*rc**4/rho/qc
-    R2 = R2*rc**4/rho/qc
-    CT = CT*rho*qc**2/rc**7
-    q_ins = q_ins/qc
-    T = T*qc/rc**3
-    return Ru, Rd, L, k1, k2, k3, Re, nu, p0, R1, R2, CT, q_ins, T
 
+    return  k1, k2, k3, Re, nu, p0
+
+def nondimensionalise_artery_parameters(rc, qc, Ru, Rd, L, R1, R2, CT, rho):
+    """
+    Nondimensionalise parameters.
+
+    Arguments
+    ---------
+    rc : float
+        Characteristic radius (length)
+    qc : float
+        Characteristic flow
+    Ru : float
+        Upstream radius
+    Rd : float
+        Downstream radius
+    L : float
+        Vessel length
+    R1 : float
+        first Windkessel resistance
+    R2 : float
+        second Windkessel resistance
+    CT : float
+    Returns
+    -------
+    return : tuple
+        Tuple of dimensionless quantities
+    """
+    if R1 and R2 and CT:
+        R1 = R1*rc**4/rho/qc
+        R2 = R2*rc**4/rho/qc
+        CT = CT*rho*qc**2/rc**7
+    else:
+        R1 = None
+        R2 = None
+        CT = None
+        
+    Ru = Ru/rc
+    Rd = Rd/rc
+    L = L/rc
+    
+
+    return Ru, Rd, L, R1, R2, CT
 
 def nondimensionalise(rc, qc, rho, x, nature):
     """
@@ -160,6 +190,57 @@ def redimensionalise(rc, qc, rho, x, nature):
         x = x*rho*qc**2/rc**4
     return x
 
+def read_geometrical_data(data_location, i):
+    """
+    Read geometrical data from file and returns
+
+    Arguments
+    ---------
+    data_location: string
+        Location of inlet flow data file
+    i : int
+        index of the artery
+
+    Returns
+    -------
+    return : parent artery, daughter artery 1(d_1), daughter artery 2(d_2), sister artery(s), Ru, Rd, L, RT, CT
+        Length of a cardiac cycle, inlet flow rate data
+    """
+
+    data = np.genfromtxt(data_location, delimiter=',', dtype= float)
+    try:
+        parent_artery = int(data[i+1, 2])
+    except:
+        parent_artery = -1
+    try:
+        daughter_artery_1 = int(data[i+1, 3])
+    except:
+        daughter_artery_1 = -1
+    try:
+        daughter_artery_2 = int(data[i+1, 4])
+    except:
+        daughter_artery_2 = -1
+    try:
+        sister_artery = int(data[i+1, 5])
+    except:
+        sister_artery = -1
+    
+    Ru = float(data[i+1, 6])
+    Rd = float(data[i+1, 7])
+    L = float(data[i+1, 8])
+    try:
+        RT = float(data[i+1, 9])
+        CT = float(data[i+1, 10])
+    except:
+        RT = None
+        CT = None
+    return parent_artery, daughter_artery_1, daughter_artery_2, sister_artery, Ru, Rd, L, RT, CT
+
+def find_parent_artery(data_location):
+    data = np.genfromtxt(data_location, delimiter=',', dtype=int, filling_values=-1)
+    third_column = data[:, 2]
+    unique_integers = list(np.unique([int(x) for x in third_column if x >= 0]))
+    return unique_integers
 
 def read_inlet(data_location, Nt):
     """
@@ -208,7 +289,7 @@ def read_output(filename):
     config = SafeConfigParser()
     config.read(filename)
 
-    order = config.getint('data', 'order')
+    order = config.getint('data', 'no_of_arteries')
     Nx = config.getint('data', 'Nx')
     Nt = config.getint('data', 'Nt')
     T0 = config.getfloat('data', 'T0')
@@ -292,6 +373,8 @@ def plot_matrix(t, x, M, label, output):
     np.save(output[:-4]+'_M.npy',M)
     np.save(output[:-4]+'_x.npy',x)
     np.save(output[:-4]+'_t.npy',t)
+
+
 
 def is_near(a, b, tol=1.e-11, reltol=1.e-10):
     """

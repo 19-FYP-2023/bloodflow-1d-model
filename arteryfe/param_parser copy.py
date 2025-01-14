@@ -54,7 +54,7 @@ class ParamParser(object):
                 value = np.array([float(v) for v in value.split(',')])
             elif key == 'no_of_arteries':
                 value = int(value)
-            elif key == 'geometric_data_location':
+            elif key == 'geometric_data_loacation':
                 value = str(value)
             else:
                 value = float(value)
