@@ -8,17 +8,16 @@ def main(data_location):
     """
     :param string data_location: Location of data file.
     """
-    order, Nx, Nt, T0, T, L, rc, qc, rho, mesh_locations, names, locations =\
+    no_of_arteries, Nx, Nt, T0, T, L, rc, qc, rho, mesh_locations, names, locations =\
         read_output(data_location)
-
+    
     T0 = redimensionalise(rc, qc, rho, T0, 'time')
     T = redimensionalise(rc, qc, rho, T, 'time')
 
     t = np.linspace(T0, T, Nt)
 
     for i, name in enumerate(names):
-
-        for j in range(2**order-1):
+        for j in range(no_of_arteries):
 
             M = XDMF_to_matrix(Nx, Nt, mesh_locations[j],
                 '%s/%s_%i.xdmf' % (locations[i], name, j), name)
