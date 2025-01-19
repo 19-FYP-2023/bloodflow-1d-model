@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 # Load MATLAB file
-mat_data = scipy.io.loadmat('/Users/wso2/Documents/MySpace/Repo/bloodflow-1d-model/pwdb_data.mat')
+mat_data = scipy.io.loadmat('/Users/biyon/Documents/MySpace/Repo/pwdb_data.mat')
 
 
 patient = 100
@@ -16,7 +16,7 @@ print(mat_data['data'][0,0]['waves'][0,0].dtype)
 print(mat_data['data'][0,0]['waves'][0,0]['U_AorticRoot'].shape)
 print(mat_data['data'][0,0]['waves'][0,0]['U_AorticRoot'][0,patient].shape)
 
-flowRateDate = mat_data['data'][0,0]['waves'][0,0]['U_AorticRoot'][0,patient].flatten()
+flowRateDate = mat_data['data'][0,0]['waves'][0,0]['U_Brachial'][0,patient].flatten()
 
 old_min, old_max = flowRateDate.min(), flowRateDate.max()
 new_min, new_max = 2, 25
