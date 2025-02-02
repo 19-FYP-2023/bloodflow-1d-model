@@ -106,3 +106,6 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# igmore data in the outputs folder
+outputs
