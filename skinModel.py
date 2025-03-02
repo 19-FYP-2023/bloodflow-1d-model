@@ -200,7 +200,7 @@ def geometryDefinition(X, Y, Z, parameters):
     frq = 660
 
     # Initialize matrix M with ones (background with water)
-    M = np.ones_like(X)
+    M = np.ones_like(X) # FIX: replace X with Z 
 
     # Set regions based on Z coordinate
     M[Z > zsurf] = 2  # epidermis
@@ -231,7 +231,7 @@ def geometryDefinition(X, Y, Z, parameters):
     A[Z > zsurf + epd_thick] = mediaProperties[2].mua(frq)  # dermis
     A[Z > zsurf + epd_thick + dem_thick] = mediaProperties[5].mua(frq)  # fat
     A[vessel_wall_indices] = mediaProperties[4].mua(frq)  # vessel wall
-    A[vessel_indices] = mediaProperties[3].mua(frq) + vel_coeff * parameters[2]  # blood
+    A[vessel_indices] = mediaProperties[3].mua(frq) + vel_coeff * parameters[2]  # blood  # FIX: make the absorption coefficient reduce with Eq
 
     return M, A
 
@@ -262,6 +262,13 @@ def model(parameters):
     # mx, my, mz = np.meshgrid(np.arange(1, 101))
     M, A = geometryDefinition(X, Y, Z, parameters)
 
+    # REVIEW: what is the logic here?
+    """
+    d: distance between the emitter and receiver 
+    h: 
+    a:
+    e: 
+    """
     d = 0.3
     h = 0.4
     a = (4 * h) / (d ** 2)
@@ -269,7 +276,7 @@ def model(parameters):
     e = np.minimum(0, e)
 
     ro = 0.01
-    norm_amp = 0.02
+    norm_amp = 0.02 # REVIEW: why is this 0.02?
 
     px = (x > -d / 2) & (x < d / 2)
     absSum = 0
@@ -283,10 +290,11 @@ def model(parameters):
             norm = norm_amp * multivariate_normal.pdf(YZ, mu, Sigma)
             norm = norm.reshape(len(z), len(y)).T
 
-            TA = A[:, i, :].reshape(len(z), len(y))
+            TA = A[:, i, :].reshape(len(z), len(y)) # REVIEW: shouldn't this be A[i, :, :] ?
 
-            thresh = 0.05
+            thresh = 0.05 # REVIEW: 1.96?
             temp = TA * norm * (norm > thresh)
             absSum += np.sum(temp)
 
+    # REVIEW: i think we have to show that the absSum we get here is equal to Edc + Ev + Eq in the paper
     return absSum

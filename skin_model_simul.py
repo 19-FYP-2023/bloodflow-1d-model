@@ -56,6 +56,7 @@ used variables: Nx, Nt, T0, T, L, names, locations
 """
 order, Nx, Nt, T0, T, L, rc, qc, rho, mesh_locations, names, locations = read_output(data_location) 
 
+# REVIEW: both Nx and L is read from data. So the length referred to by a unit of Nx can vary. Is that an issue?  
 
 
 time = np.linspace(T0, T, Nt)
@@ -75,9 +76,9 @@ tud:
 tua:
 """
 A = np.pi * (( 1.75 / 1000) ** 2) 
-m_d = 1613
+m_d = 1613 # REVIEW: check whether this value is correct
 k = (10 ** -6)
-Qc = (328 * k) / (A*10)
+Qc = (328 * k) / (A*10) # REVIEW: check whether this value is correct
 print(Qc)
 nd = 0.6875
 na = 0.3125
@@ -95,7 +96,7 @@ for d in D:
     if d>L[j]:
         raise ValueError('Specified length is larger than atery length')
         
-D = np.round(400*np.array(D)/L[j]).astype(int) # TODO: change 400 to Nx
+D = np.round(Nx*np.array(D)/L[j]).astype(int)
 print(D)
 
 ppgs = []
@@ -125,11 +126,12 @@ for d in D:
     """    
     diameter = 2*np.sqrt(waveForm["area"]/np.pi) # how the diameter change with time
  
-    Q = (waveForm["flow"]/waveForm["area"])/100 # TODO: check if division by 100 is to convert cm to m
+    # REVIEW: shouldn't Q = waveForm["flow"] ?
+    Q = (waveForm["flow"]/waveForm["area"])/100 # TODO: check if division by 100 is to convert cm to m 
 
 
     y = np.sign(Q) * m_d * (np.sqrt(np.abs(Q / Qc)) / (1 + np.sqrt(np.abs(Q / Qc)))) # Eq,h is calculated here (paper: Quantification of the Phenomena Affecting Reflective Arterial Photoplethysmography)
-    norm_y = y / np.max(y)
+    norm_y = y / np.max(y) # REVIEW: why is this normalized?
 
     norm_y_min = np.argmin(norm_y, axis=0)
     print("min p y : ", norm_y_min)
@@ -137,22 +139,25 @@ for d in D:
     norm_y_3 = np.tile(norm_y,3)
 
     delta = nd * np.exp(-time / tud) + na * np.exp(-time / tua) # related to equation (6) in the paper (paper: Quantification of the Phenomena Affecting Reflective Arterial Photoplethysmography)
-    norm_delta = delta / np.sum(delta)
+    norm_delta = delta / np.sum(delta) # REVIEW: why is this normalized?
 
-    ab_org = np.convolve(norm_y_3, norm_delta, 'same')
-    ab_crop = ab_org[200:800] # TODO: experiment with the limit values
+    ab_org = np.convolve(norm_y_3, norm_delta, 'same') # REVIEW: why isn't 'full' used?
+    ab_crop = ab_org[200:800] # REVIEW: Shouldn't the range be [ floor(Nt/2), floor(Nt/2) + 3Nt - Nt + 1 ] ? For this case (Nt = 400) => [200, 1001]
 
+    # ab_crop is Eq,l (paper: Quantification of the Phenomena Affecting Reflective Arterial Photoplethysmography)
     ab_min = np.argmin(ab_crop, axis=0)
     print("min p y : ", ab_min)
 
     # check if the signal has been shifted forward after convolution
-    if (ab_min<norm_y_min):
+    if (ab_min<norm_y_min): # REVIEW: Why is this done?
         raise ValueError("Min point cannot find")
     
     start_ab = 200 + ab_min - norm_y_min 
     # start_ab = 0 
 
-    ab = ab_org[start_ab:start_ab+400] # TODO: replace 400 with Nt  
+    # REVIEW: why is this alignment needed?
+    ab = ab_org[start_ab:start_ab+400] # TODO: replace 400 with Nt 
+    # TODO: add the effect of Eq in macroscropic sense without including it in the skin model simulation 
 
     # n = max(len(norm_y), len(norm_delta))
     # norm_y_centered = np.pad(norm_y, (n - len(norm_y), 0), mode='constant')
@@ -188,6 +193,10 @@ for d in D:
     - ab: Eq (in paper)
 
     """
+    # parameters has the following time varying quantities at a specific location:
+    #   - diameter of the vessel
+    #   - pressure inside the vessel
+    #   - effect of blood flow for rPPG
     parameters = np.concatenate((diameter.reshape(Nt,1),waveForm["pressure"].reshape(Nt,1),ab.reshape(Nt,1)), axis=1)
 
     print(parameters.shape)
