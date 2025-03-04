@@ -5,6 +5,7 @@ from configparser import SafeConfigParser
 import matplotlib.pyplot as plt
 from skinModel import model
 from tqdm import tqdm
+import os
 
 def read_output(filename):
     """
@@ -21,14 +22,14 @@ def read_output(filename):
         Tuple of all parameters stored in the file
     """
     config = SafeConfigParser()
-    config.read(filename)
+    config.read(filename+'4cycles_last/data.cfg')
 
-    order = config.getint('data', 'order')
-    Nx = config.getint('data', 'Nx')
-    Nt = config.getint('data', 'Nt')
-    T0 = config.getfloat('data', 'T0')
-    T = config.getfloat('data', 'T')
-    L = [float(f) for f in config.get('data', 'L').split(',')]
+    no_of_arteries = config.getint('data', 'no_of_arteries')
+    Nx = config.getint('data', 'nx')
+    Nt = config.getint('data', 'nt')
+    T0 = config.getfloat('data', 't0')
+    T = config.getfloat('data', 't')
+    L = [float(f) for f in config.get('data', 'l').split(',')]
     rc = config.getfloat('data', 'rc')
     qc = config.getfloat('data', 'qc')
     rho = config.getfloat('data', 'rho')
@@ -36,12 +37,17 @@ def read_output(filename):
     names = config.get('data', 'names').split(',')
     locations = config.get('data', 'locations').split(',')
 
-    return order, Nx, Nt, T0, T, L, rc, qc, rho, mesh_locations,\
+    for i,loc in enumerate(mesh_locations):
+        mesh_locations[i] = filename+loc 
+
+    for i,loc in enumerate(locations):
+        locations[i] = filename+loc 
+
+
+    return no_of_arteries, Nx, Nt, T0, T, L, rc, qc, rho, mesh_locations,\
            names, locations
 
-
-
-data_location = '/home/biyon/FYP/bloodflow-1d-model/patient_100_out/4cycles_last/data.cfg'
+base = '/Users/biyon/Documents/MySpace/Repo/outputs/patient_0_3_org/'
 
 """ 
 used variables: Nx, Nt, T0, T, L, names, locations 
@@ -54,9 +60,10 @@ used variables: Nx, Nt, T0, T, L, names, locations
 - names: 'area', 'flow', 'pressure'
 - locations: locations of where the blood flow simulations outputs are for area, flow, and pressure
 """
-order, Nx, Nt, T0, T, L, rc, qc, rho, mesh_locations, names, locations = read_output(data_location) 
+no_of_arteries, Nx, Nt, T0, T, L, rc, qc, rho, mesh_locations, names, locations = read_output(base) 
 
 # REVIEW: both Nx and L is read from data. So the length referred to by a unit of Nx can vary. Is that an issue?  
+
 
 
 time = np.linspace(T0, T, Nt)
@@ -91,7 +98,7 @@ x = np.linspace(0, L[j], Nx+1)
 print("length of atery: ", L[j])
 
 
-D = [20,21.3,22.6]
+D = [5,5.3,5.6]
 for d in D:
     if d>L[j]:
         raise ValueError('Specified length is larger than atery length')
@@ -148,9 +155,9 @@ for d in D:
     ab_min = np.argmin(ab_crop, axis=0)
     print("min p y : ", ab_min)
 
-    # check if the signal has been shifted forward after convolution
-    if (ab_min<norm_y_min): # REVIEW: Why is this done?
-        raise ValueError("Min point cannot find")
+    # # check if the signal has been shifted forward after convolution
+    # if (ab_min<norm_y_min): # REVIEW: Why is this done?
+    #     raise ValueError("Min point cannot find")
     
     start_ab = 200 + ab_min - norm_y_min 
     # start_ab = 0 
