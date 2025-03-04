@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.stats import multivariate_normal
 from scipy.interpolate import interp1d
+from matplotlib import pyplot as plt
 
 def calc_mua(wavelength, S, B, W, F, M):
     global muadeoxy, muafat, muamel, muaoxy, muawater, musp, nmLIB
@@ -231,7 +232,7 @@ def geometryDefinition(X, Y, Z, parameters):
     A[Z > zsurf + epd_thick] = mediaProperties[2].mua(frq)  # dermis
     A[Z > zsurf + epd_thick + dem_thick] = mediaProperties[5].mua(frq)  # fat
     A[vessel_wall_indices] = mediaProperties[4].mua(frq)  # vessel wall
-    A[vessel_indices] = mediaProperties[3].mua(frq) + vel_coeff * parameters[2]  # blood  # FIX: make the absorption coefficient reduce with Eq
+    A[vessel_indices] = mediaProperties[3].mua(frq) #+ vel_coeff * parameters[2]  # blood  # FIX: make the absorption coefficient reduce with Eq
 
     return M, A
 
@@ -281,20 +282,25 @@ def model(parameters):
     px = (x > -d / 2) & (x < d / 2)
     absSum = 0
 
-    for i in range(len(x)):
-        if px[i]:
-            mu = [0, e[i]]
-            Sigma = [[ro * abs(e[i]), 0], [0, ro * abs(e[i])]]
-            YM, ZM = np.meshgrid(y, z)
-            YZ = np.column_stack((YM.ravel(), ZM.ravel()))
-            norm = norm_amp * multivariate_normal.pdf(YZ, mu, Sigma)
-            norm = norm.reshape(len(z), len(y)).T
+    # for i in range(len(x)):
+    i = round(len(x)/2)
+    if px[i]:
+        mu = [0, e[i]]
+        Sigma = [[ro * abs(e[i]), 0], [0, ro * abs(e[i])]]
+        YM, ZM = np.meshgrid(y, z)
+        YZ = np.column_stack((YM.ravel(), ZM.ravel()))
+        norm = norm_amp * multivariate_normal.pdf(YZ, mu, Sigma)
+        norm = norm.reshape(len(z), len(y)).T
 
-            TA = A[:, i, :].reshape(len(z), len(y)) # REVIEW: shouldn't this be A[i, :, :] ?
+        TA = A[:, i, :].reshape(len(z), len(y)) # REVIEW: shouldn't this be A[i, :, :] ?
 
-            thresh = 0.05 # REVIEW: 1.96?
-            temp = TA * norm * (norm > thresh)
-            absSum += np.sum(temp)
+        #plot TA
+        plt.imshow(TA)
+
+
+        thresh = 0.05 # REVIEW: 1.96?
+        temp = TA * norm * (norm > thresh)
+        absSum += np.sum(temp)
 
     # REVIEW: i think we have to show that the absSum we get here is equal to Edc + Ev + Eq in the paper
     return absSum
