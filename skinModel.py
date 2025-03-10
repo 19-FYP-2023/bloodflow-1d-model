@@ -209,14 +209,8 @@ def geometryDefinition(X, Y, Z, parameters):
     M[Z > zsurf + epd_thick + dem_thick] = 6  # fat
 
     # Define regions for vessel and vessel wall
-    vessel_wall_indices = np.logical_and(
-        X**2 + (Z - (zsurf + vesseldepth))**2 < (vesselradius + ves_wallthick)**2,
-        Z <= zsurf + vesseldepth
-    )
-    vessel_indices = np.logical_and(
-        X**2 + (Z - (zsurf + vesseldepth))**2 < vesselradius**2,
-        Z <= zsurf + vesseldepth
-    )
+    vessel_wall_indices = Y**2 + (Z - (zsurf + vesseldepth))**2 < (vesselradius + ves_wallthick)**2
+    vessel_indices =  Y**2 + (Z - (zsurf + vesseldepth))**2 < vesselradius**2
 
     M[vessel_wall_indices] = 5  # vessel wall
     M[vessel_indices] = 4  # blood
@@ -252,13 +246,14 @@ def model(parameters):
     parameters
     1 - diameter
     """
-    nx = 200
-    ny = 200
-    nz = 200
+    nx = 300
+    ny = 300
+    nz = 300
     x = np.linspace(-0.3, 0.3, nx)
     y = np.linspace(-0.3, 0.3, ny)
-    z = np.linspace(-0.8, 0, nz)
-    X, Y, Z = np.meshgrid(x.astype(np.single), y.astype(np.single), -z.astype(np.single))
+    z = np.linspace(0, 0.8, nz)
+    #X, Y, Z = np.meshgrid(x.astype(np.single), y.astype(np.single), z.astype(np.single))
+    Y, Z, X = np.meshgrid(y.astype(np.single), z.astype(np.single), x.astype(np.single))
 
     # mx, my, mz = np.meshgrid(np.arange(1, 101))
     M, A = geometryDefinition(X, Y, Z, parameters)
@@ -273,8 +268,16 @@ def model(parameters):
     d = 0.3
     h = 0.4
     a = (4 * h) / (d ** 2)
-    e = a * (x - (d / 2)) * (x + (d / 2))
-    e = np.minimum(0, e)
+    e = -a * (x - (d / 2)) * (x + (d / 2))
+    e = np.maximum(0, e)
+
+    # # plot e
+    # plt.plot(x, e)
+    # plt.xlabel("X-axis")
+    # plt.ylabel("e")
+    # plt.title("e")
+    # plt.show()
+
 
     ro = 0.01
     norm_amp = 0.02 # REVIEW: why is this 0.02?
@@ -282,25 +285,67 @@ def model(parameters):
     px = (x > -d / 2) & (x < d / 2)
     absSum = 0
 
-    # for i in range(len(x)):
-    i = round(len(x)/2)
-    if px[i]:
-        mu = [0, e[i]]
-        Sigma = [[ro * abs(e[i]), 0], [0, ro * abs(e[i])]]
-        YM, ZM = np.meshgrid(y, z)
-        YZ = np.column_stack((YM.ravel(), ZM.ravel()))
-        norm = norm_amp * multivariate_normal.pdf(YZ, mu, Sigma)
-        norm = norm.reshape(len(z), len(y)).T
+    for i in range(len(x)):
+        if px[i]:
+            mu = [0, e[i]]
+            Sigma = [[ro * abs(e[i]), 0], [0, ro * abs(e[i])]]
+            YM, ZM = np.meshgrid(y, z)
+            YZ = np.column_stack((YM.ravel(), ZM.ravel()))
+            norm = norm_amp * multivariate_normal.pdf(YZ, mu, Sigma)
+            norm = norm.reshape(len(z), len(y))
 
-        TA = A[:, i, :].reshape(len(z), len(y)) # REVIEW: shouldn't this be A[i, :, :] ?
-
-        #plot TA
-        plt.imshow(TA)
+            TA = A[:, :, i] # REVIEW: shouldn't this be A[i, :, :] ?
 
 
-        thresh = 0.05 # REVIEW: 1.96?
-        temp = TA * norm * (norm > thresh)
-        absSum += np.sum(temp)
+            thresh = norm_amp*0.025 # REVIEW: 1.96?
+            temp = TA * norm * (norm > thresh)
+            absSum += np.sum(temp)
+            
+            # if (i==100):
+            # Plot norm and TA separately
+            # fig, axs = plt.subplots(1, 3, figsize=(18, 6))
+
+            # # Plot norm
+            # axs[0].imshow(norm, cmap='viridis', aspect='auto', extent=[y.min(), y.max(), z.max(), z.min()])
+            # axs[0].set_title("norm (Multivariate Normal)")
+            # axs[0].set_ylabel("Z-axis")
+            # axs[0].set_xlabel("Y-axis")
+
+            # # Plot TA
+            # axs[1].imshow(TA, cmap='magma', aspect='auto', extent=[y.min(), y.max(), z.max(), z.min()])
+            # axs[1].set_title("TA (Absorption Coefficient)")
+            # axs[1].set_ylabel("Z-axis")
+            # axs[1].set_xlabel("Y-axis")
+
+            # # Plot temp
+            # axs[2].imshow(temp, cmap='magma', aspect='auto', extent=[y.min(), y.max(), z.max(), z.min()])
+            # axs[2].set_title("TA (temp)")
+            # axs[2].set_ylabel("Z-axis")
+            # axs[2].set_xlabel("Y-axis")
+
+             # Plot YZ
+            # YZ = A[i, :, :]
+            # axs[0].imshow(YZ, cmap='viridis', aspect='auto', extent=[y.min(), y.max(), (-z).min(), (-z).max()])
+            # axs[0].set_title("YZ")
+            # axs[0].set_xlabel("Z-axis")
+            # axs[0].set_ylabel("Y-axis")
+
+            # # Plot XZ
+            # XZ = A[:, i, :]
+            # axs[1].imshow(XZ, cmap='magma', aspect='auto', extent=[x.min(), x.max(), (-z).min(), (-z).max()])
+            # axs[1].set_title("XZ")
+            # axs[1].set_xlabel("Z-axis")
+            # axs[1].set_ylabel("Y-axis")
+
+            # # Plot XY
+            # XY = A[:, :, i]
+            # axs[2].imshow(XY, cmap='magma', aspect='auto', extent=[x.min(), x.max(), y.min(), y.max()])
+            # axs[2].set_title("XY")
+            # axs[2].set_xlabel("Z-axis")
+            # axs[2].set_ylabel("Y-axis")
+
+            # plt.tight_layout()
+            # plt.show()
 
     # REVIEW: i think we have to show that the absSum we get here is equal to Edc + Ev + Eq in the paper
     return absSum

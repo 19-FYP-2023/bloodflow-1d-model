@@ -93,12 +93,12 @@ tud = 0.39
 tua = 1.78
 
 
-j = 1 # (number of arteries = 3 => radial artery index = 1) | (number of arteries = 5 => radial artery index = 4) 
+j = 4 # (number of arteries = 3 => radial artery index = 1) | (number of arteries = 5 => radial artery index = 4) 
 x = np.linspace(0, L[j], Nx+1)
 print("length of atery: ", L[j])
 
 
-D = [5,5.3,5.6]
+D = [22]
 for d in D:
     if d>L[j]:
         raise ValueError('Specified length is larger than atery length')
@@ -126,7 +126,17 @@ for d in D:
         print(key, val.shape, type(val[0]))
         if (val.shape[0]!=Nt):
             raise ValueError('Waveforms Length is not consistant')
-
+    
+    #plot area,flowrate and pressure of wave form in three subplots
+    fig, axs = plt.subplots(3)
+    fig.suptitle('Waveform')
+    axs[0].plot(time, waveForm["area"])
+    axs[0].set_title('Area')
+    axs[1].plot(time, waveForm["flow"])
+    axs[1].set_title('Flow')
+    axs[2].plot(time, waveForm["pressure"])
+    axs[2].set_title('Pressure')
+    plt.show()
 
     """ 
     Simulating the flow rate effect for PPG
