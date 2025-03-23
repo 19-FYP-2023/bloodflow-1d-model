@@ -278,6 +278,14 @@ def model(parameters):
     # plt.title("e")
     # plt.show()
 
+    # voxel area calculation
+    voxel_len_x = x[1] - x[0]
+    voxel_len_y = y[1] - y[0]
+    voxel_len_z = z[1] - z[0]
+    voxel_volume = voxel_len_x*voxel_len_y*voxel_len_z
+
+    print(voxel_volume, voxel_len_x, voxel_len_y, voxel_len_z)
+
 
     ro = 0.01
     norm_amp = 0.02 # REVIEW: why is this 0.02?
@@ -286,9 +294,10 @@ def model(parameters):
     absSum = 0
 
     for i in range(len(x)):
+        # REVIEW: should we consider only the light intensity propagated from the previous x layer, in this x layer's calculation 
         if px[i]:
-            mu = [0, e[i]]
-            Sigma = [[ro * abs(e[i]), 0], [0, ro * abs(e[i])]]
+            mu = [0, e[i]] # [mean for y dir, mean for z dir]
+            Sigma = [[ro * abs(e[i]), 0], [0, ro * abs(e[i])]] # [std for y dir, std for z dir]
             YM, ZM = np.meshgrid(y, z)
             YZ = np.column_stack((YM.ravel(), ZM.ravel()))
             norm = norm_amp * multivariate_normal.pdf(YZ, mu, Sigma)
@@ -298,7 +307,7 @@ def model(parameters):
 
 
             thresh = norm_amp*0.025 # REVIEW: 1.96?
-            temp = TA * norm * (norm > thresh)
+            temp = TA * norm * (norm > thresh) * voxel_volume
             absSum += np.sum(temp)
             
             # if (i==100):
