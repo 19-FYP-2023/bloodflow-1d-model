@@ -47,7 +47,7 @@ def read_output(filename):
     return no_of_arteries, Nx, Nt, T0, T, L, rc, qc, rho, mesh_locations,\
            names, locations
 
-base = '/Users/biyon/Documents/MySpace/Repo/outputs/patient_0_3_org/'
+base = 'outputs/patient_0_3_org/'
 
 """ 
 used variables: Nx, Nt, T0, T, L, names, locations 
