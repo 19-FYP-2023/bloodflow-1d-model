@@ -47,7 +47,28 @@ def read_output(filename):
     return no_of_arteries, Nx, Nt, T0, T, L, rc, qc, rho, mesh_locations,\
            names, locations
 
-base = 'outputs/patient_0_3_org/'
+
+if len(sys.argv) != 2:
+    print("[ERROR] Incorrect invocation of the script")
+    print("Usage: python skin_model_simul.py <patient data folder name>")
+    sys.exit(1)
+
+# making a folder with the name of the patient if not available
+patient_folder_name = sys.argv[1]
+base = f"outputs/{patient_folder_name}/"
+result_folder = f"results/{patient_folder_name}/"
+
+if not os.path.exists(base):
+    print(f"[ERROR] Patient data does not exist in {base}")
+    sys.exit(1)
+
+if not os.path.exists(result_folder):
+    print(f"[LOG] creating {result_folder}")
+    os.mkdir(f"{result_folder}")
+else:
+    print(f"[LOG] cleaning existing {result_folder}")
+    os.rmdir(f"{result_folder}")
+    os.mkdir(f"{result_folder}")
 
 """ 
 used variables: Nx, Nt, T0, T, L, names, locations 
@@ -136,7 +157,7 @@ for d in D:
     axs[1].set_title('Flow')
     axs[2].plot(time, waveForm["pressure"])
     axs[2].set_title('Pressure')
-    plt.show()
+    fig.savefig(f"{result_folder}/input_waveforms_d({d}).png")
 
     """ 
     Simulating the flow rate effect for PPG
@@ -237,9 +258,10 @@ for d in D:
 
     ppgs.append(nPhotonsCollected_values)
     plt.plot(time, nPhotonsCollected_values, label=f"D={d}")
+    plt.savefig(f"{result_folder}/ppg_d({d}).png")
 
 plt.xlabel('Time')  # You may need to replace 'Time' with the appropriate label
 plt.ylabel('Reflected light')  # You may need to replace 'Y' with the appropriate label
 plt.title('Simulation Results')
 plt.legend()
-plt.show()
+plt.savefig(f"{result_folder}/final.png")
