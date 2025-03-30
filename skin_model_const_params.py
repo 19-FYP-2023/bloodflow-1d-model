@@ -12,7 +12,7 @@ class SkinModelConstParams:
         voxel_len_z = self.z[1] - self.z[0]
         self.voxel_yz_area = voxel_len_y * voxel_len_z
 
-        a = (4 * mean_penetration) / (tx_rx_distance ** 2)
+        a = -(4 * mean_penetration) / (tx_rx_distance ** 2)
         parabola = ZeroClampedParabola(self.x, a, 0, mean_penetration)
         self.mean_light_pathway = parabola
         self.mean_light_path_dist = parabola.get_consec_point_distances()
