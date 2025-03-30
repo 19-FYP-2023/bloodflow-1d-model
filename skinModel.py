@@ -280,10 +280,6 @@ def model(parameters, skin_model_const_params, in_flux = 1):
             # calculating the flux coming out of each voxel in this x layer
             xlayer_voxels_out_flux = xlayer_voxels_in_flux * (1 - xlayer_voxels_mu * skin_model_const_params.get_mean_light_path_distances()[i])
 
-            # sanity check # TODO: remove this
-            assert xlayer_voxels_in_flux.shape == norm.shape
-            assert xlayer_voxels_out_flux.shape == norm.shape
-
             # calculating the total flux coming out of this x layer
             xlayer_out_flux = np.sum(xlayer_voxels_out_flux)
 
