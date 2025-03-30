@@ -17,6 +17,8 @@ class SkinModelConstParams:
         self.mean_light_pathway = parabola
         self.mean_light_path_dist = parabola.get_consec_point_distances()
         self.mean_light_pathway_valid_indices = (self.x > -tx_rx_distance / 2) & (self.x < tx_rx_distance / 2)
+
+        self.ln10 = np.log(10)
     
     def get_mean_light_path_distances(self) -> np.ndarray:
         return self.mean_light_path_dist
@@ -48,6 +50,8 @@ class SkinModelConstParams:
     def get_voxel_yz_area(self) -> int:
         return self.voxel_yz_area
 
+    def get_ln10(self) -> float:
+        return self.ln10
     
 
     
