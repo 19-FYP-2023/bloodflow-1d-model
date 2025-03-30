@@ -258,7 +258,6 @@ def model(parameters, skin_model_const_params, in_flux = 1):
     # mx, my, mz = np.meshgrid(np.arange(1, 101))
     M, A = geometryDefinition(X, Y, Z, parameters)
 
-    ro = 0.01
     mean_light_pathway_z_points = skin_model_const_params.get_mean_light_path_z_vals()
 
     # setting the input and output flux values for the 1st x layer    
@@ -268,7 +267,7 @@ def model(parameters, skin_model_const_params, in_flux = 1):
     for i in range(len(x)):
         if skin_model_const_params.is_valid_mean_light_path_index(i):
             mu = [0, mean_light_pathway_z_points[i]] # [mean for y dir, mean for z dir]
-            Sigma = [[ro * abs(mean_light_pathway_z_points[i]), 0], [0, ro * abs(mean_light_pathway_z_points[i])]] # [std for y dir, std for z dir]
+            Sigma = [[RO * abs(mean_light_pathway_z_points[i]), 0], [0, RO * abs(mean_light_pathway_z_points[i])]] # [std for y dir, std for z dir]
             YM, ZM = np.meshgrid(y, z)
             YZ = np.column_stack((YM.ravel(), ZM.ravel()))
             norm = multivariate_normal.pdf(YZ, mu, Sigma).reshape(len(z), len(y))
