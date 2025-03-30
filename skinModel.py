@@ -1,3 +1,4 @@
+from constants import *
 import numpy as np
 from scipy.stats import multivariate_normal
 from scipy.interpolate import interp1d
@@ -239,7 +240,7 @@ def geometryDefinition(X, Y, Z, parameters):
 # parameters = [value1, value2, value3]  # Define your parameters
 # M, A = geometryDefinition(X, Y, Z, parameters)
 
-def model(parameters):
+def model(parameters, in_flux = 1):
     """
     MODEL Summary of this function goes here
     Detailed explanation goes here
@@ -249,9 +250,9 @@ def model(parameters):
     nx = 300
     ny = 300
     nz = 300
-    x = np.linspace(-0.3, 0.3, nx)
-    y = np.linspace(-0.3, 0.3, ny)
-    z = np.linspace(0, 0.8, nz)
+    x = np.linspace(GEO_XLIMITS[0], GEO_XLIMITS[1], nx)
+    y = np.linspace(GEO_YLIMITS[0], GEO_YLIMITS[1], ny)
+    z = np.linspace(GEO_ZLIMITS[0], GEO_ZLIMITS[1], nz)
     #X, Y, Z = np.meshgrid(x.astype(np.single), y.astype(np.single), z.astype(np.single))
     Y, Z, X = np.meshgrid(y.astype(np.single), z.astype(np.single), x.astype(np.single))
 
@@ -279,22 +280,21 @@ def model(parameters):
     # plt.show()
 
     # voxel area calculation
-    voxel_len_x = x[1] - x[0]
     voxel_len_y = y[1] - y[0]
     voxel_len_z = z[1] - z[0]
-    voxel_volume = voxel_len_x*voxel_len_y*voxel_len_z
 
-    print(voxel_volume, voxel_len_x, voxel_len_y, voxel_len_z)
-
+    voxel_yz_area = voxel_len_y * voxel_len_z
 
     ro = 0.01
     norm_amp = 0.02 # REVIEW: why is this 0.02?
 
     px = (x > -d / 2) & (x < d / 2)
-    absSum = 0
+
+    # setting the input and output flux values for the 1st x layer    
+    xlayer_in_flux = in_flux
+    xlayer_out_flux = None
 
     for i in range(len(x)):
-        # REVIEW: should we consider only the light intensity propagated from the previous x layer, in this x layer's calculation 
         if px[i]:
             mu = [0, e[i]] # [mean for y dir, mean for z dir]
             Sigma = [[ro * abs(e[i]), 0], [0, ro * abs(e[i])]] # [std for y dir, std for z dir]
@@ -302,59 +302,23 @@ def model(parameters):
             YZ = np.column_stack((YM.ravel(), ZM.ravel()))
             norm = norm_amp * multivariate_normal.pdf(YZ, mu, Sigma)
             norm = norm.reshape(len(z), len(y))
+            xlayer_voxels_mu = A[:, :, i]
 
-            TA = A[:, :, i] # REVIEW: shouldn't this be A[i, :, :] ?
+            # calculating the flux going into each voxel in this x layer 
+            xlayer_voxels_in_flux = xlayer_in_flux * norm * voxel_yz_area
 
+            # calculating the flux coming out of each voxel in this x layer
+            xlayer_voxels_out_flux = xlayer_voxels_in_flux * (1 - xlayer_voxels_mu * delta_x)
 
-            thresh = norm_amp*0.025 # REVIEW: 1.96?
-            temp = TA * norm * (norm > thresh) * voxel_volume
-            absSum += np.sum(temp)
-            
-            # if (i==100):
-            # Plot norm and TA separately
-            # fig, axs = plt.subplots(1, 3, figsize=(18, 6))
+            # sanity check # TODO: remove this
+            assert xlayer_voxels_in_flux.shape == norm.shape
+            assert xlayer_voxels_out_flux == norm.shape
 
-            # # Plot norm
-            # axs[0].imshow(norm, cmap='viridis', aspect='auto', extent=[y.min(), y.max(), z.max(), z.min()])
-            # axs[0].set_title("norm (Multivariate Normal)")
-            # axs[0].set_ylabel("Z-axis")
-            # axs[0].set_xlabel("Y-axis")
+            # calculating the total flux coming out of this x layer
+            xlayer_out_flux = np.sum(xlayer_voxels_out_flux)
 
-            # # Plot TA
-            # axs[1].imshow(TA, cmap='magma', aspect='auto', extent=[y.min(), y.max(), z.max(), z.min()])
-            # axs[1].set_title("TA (Absorption Coefficient)")
-            # axs[1].set_ylabel("Z-axis")
-            # axs[1].set_xlabel("Y-axis")
-
-            # # Plot temp
-            # axs[2].imshow(temp, cmap='magma', aspect='auto', extent=[y.min(), y.max(), z.max(), z.min()])
-            # axs[2].set_title("TA (temp)")
-            # axs[2].set_ylabel("Z-axis")
-            # axs[2].set_xlabel("Y-axis")
-
-             # Plot YZ
-            # YZ = A[i, :, :]
-            # axs[0].imshow(YZ, cmap='viridis', aspect='auto', extent=[y.min(), y.max(), (-z).min(), (-z).max()])
-            # axs[0].set_title("YZ")
-            # axs[0].set_xlabel("Z-axis")
-            # axs[0].set_ylabel("Y-axis")
-
-            # # Plot XZ
-            # XZ = A[:, i, :]
-            # axs[1].imshow(XZ, cmap='magma', aspect='auto', extent=[x.min(), x.max(), (-z).min(), (-z).max()])
-            # axs[1].set_title("XZ")
-            # axs[1].set_xlabel("Z-axis")
-            # axs[1].set_ylabel("Y-axis")
-
-            # # Plot XY
-            # XY = A[:, :, i]
-            # axs[2].imshow(XY, cmap='magma', aspect='auto', extent=[x.min(), x.max(), y.min(), y.max()])
-            # axs[2].set_title("XY")
-            # axs[2].set_xlabel("Z-axis")
-            # axs[2].set_ylabel("Y-axis")
-
-            # plt.tight_layout()
-            # plt.show()
+            # setting the input flux of the next layer as the output flux of this layer
+            xlayer_in_flux = xlayer_out_flux
 
     # REVIEW: i think we have to show that the absSum we get here is equal to Edc + Ev + Eq in the paper
-    return absSum
+    return xlayer_out_flux

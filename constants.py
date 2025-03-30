@@ -1,0 +1,3 @@
+GEO_XLIMITS = [-0.3, 0.3]
+GEO_YLIMITS = [-0.3, 0.3]
+GEO_ZLIMITS = [0, 0.8]
