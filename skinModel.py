@@ -3,6 +3,7 @@ import numpy as np
 from scipy.stats import multivariate_normal
 from scipy.interpolate import interp1d
 from matplotlib import pyplot as plt
+from skin_model_const_params import SkinModelConstParams
 
 def calc_mua(wavelength, S, B, W, F, M):
     global muadeoxy, muafat, muamel, muaoxy, muawater, musp, nmLIB
@@ -240,79 +241,48 @@ def geometryDefinition(X, Y, Z, parameters):
 # parameters = [value1, value2, value3]  # Define your parameters
 # M, A = geometryDefinition(X, Y, Z, parameters)
 
-def model(parameters, in_flux = 1):
+def model(parameters, skin_model_const_params, in_flux = 1):
     """
     MODEL Summary of this function goes here
     Detailed explanation goes here
     parameters
     1 - diameter
     """
-    nx = 300
-    ny = 300
-    nz = 300
-    x = np.linspace(GEO_XLIMITS[0], GEO_XLIMITS[1], nx)
-    y = np.linspace(GEO_YLIMITS[0], GEO_YLIMITS[1], ny)
-    z = np.linspace(GEO_ZLIMITS[0], GEO_ZLIMITS[1], nz)
-    #X, Y, Z = np.meshgrid(x.astype(np.single), y.astype(np.single), z.astype(np.single))
-    Y, Z, X = np.meshgrid(y.astype(np.single), z.astype(np.single), x.astype(np.single))
+    X = skin_model_const_params.get_meshX()
+    Y = skin_model_const_params.get_meshY()
+    Z = skin_model_const_params.get_meshZ()
+    x = skin_model_const_params.get_x()
+    y = skin_model_const_params.get_y()
+    z = skin_model_const_params.get_z()
 
     # mx, my, mz = np.meshgrid(np.arange(1, 101))
     M, A = geometryDefinition(X, Y, Z, parameters)
 
-    # REVIEW: what is the logic here?
-    """
-    d: distance between the emitter and receiver 
-    h: 
-    a:
-    e: 
-    """
-    d = 0.3
-    h = 0.4
-    a = (4 * h) / (d ** 2)
-    e = -a * (x - (d / 2)) * (x + (d / 2))
-    e = np.maximum(0, e)
-
-    # # plot e
-    # plt.plot(x, e)
-    # plt.xlabel("X-axis")
-    # plt.ylabel("e")
-    # plt.title("e")
-    # plt.show()
-
-    # voxel area calculation
-    voxel_len_y = y[1] - y[0]
-    voxel_len_z = z[1] - z[0]
-
-    voxel_yz_area = voxel_len_y * voxel_len_z
-
     ro = 0.01
-    norm_amp = 0.02 # REVIEW: why is this 0.02?
-
-    px = (x > -d / 2) & (x < d / 2)
+    mean_light_pathway_z_points = skin_model_const_params.get_mean_light_path_z_vals()
 
     # setting the input and output flux values for the 1st x layer    
     xlayer_in_flux = in_flux
     xlayer_out_flux = None
 
     for i in range(len(x)):
-        if px[i]:
-            mu = [0, e[i]] # [mean for y dir, mean for z dir]
-            Sigma = [[ro * abs(e[i]), 0], [0, ro * abs(e[i])]] # [std for y dir, std for z dir]
+        if skin_model_const_params.is_valid_mean_light_path_index(i):
+            mu = [0, mean_light_pathway_z_points[i]] # [mean for y dir, mean for z dir]
+            Sigma = [[ro * abs(mean_light_pathway_z_points[i]), 0], [0, ro * abs(mean_light_pathway_z_points[i])]] # [std for y dir, std for z dir]
             YM, ZM = np.meshgrid(y, z)
             YZ = np.column_stack((YM.ravel(), ZM.ravel()))
-            norm = norm_amp * multivariate_normal.pdf(YZ, mu, Sigma)
-            norm = norm.reshape(len(z), len(y))
+            norm = multivariate_normal.pdf(YZ, mu, Sigma).reshape(len(z), len(y))
             xlayer_voxels_mu = A[:, :, i]
 
             # calculating the flux going into each voxel in this x layer 
-            xlayer_voxels_in_flux = xlayer_in_flux * norm * voxel_yz_area
+            xlayer_voxels_in_flux = xlayer_in_flux * norm * skin_model_const_params.get_voxel_yz_area()
 
             # calculating the flux coming out of each voxel in this x layer
-            xlayer_voxels_out_flux = xlayer_voxels_in_flux * (1 - xlayer_voxels_mu * delta_x)
+            xlayer_voxels_out_flux = xlayer_voxels_in_flux * (1 - xlayer_voxels_mu * skin_model_const_params.get_mean_light_path_distances()[i])
 
             # sanity check # TODO: remove this
             assert xlayer_voxels_in_flux.shape == norm.shape
-            assert xlayer_voxels_out_flux == norm.shape
+            assert xlayer_voxels_out_flux.shape == norm.shape
 
             # calculating the total flux coming out of this x layer
             xlayer_out_flux = np.sum(xlayer_voxels_out_flux)

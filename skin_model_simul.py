@@ -1,9 +1,11 @@
 import sys
 import numpy as np
 import matplotlib
+from constants import *
 from configparser import SafeConfigParser
 import matplotlib.pyplot as plt
 from skinModel import model
+from skin_model_const_params import SkinModelConstParams
 from tqdm import tqdm
 import os
 
@@ -241,12 +243,14 @@ for d in D:
 
     nPhotonsCollected_values = np.zeros_like(time)
 
+    skin_model_const_params = SkinModelConstParams(GEO_XLIMITS, GEO_YLIMITS, GEO_ZLIMITS, NUM_X_TICKS, NUM_Y_TICKS, NUM_Z_TICKS, TX_RX_DISTANCE, MEAN_PENETRATION)
+
     # Loop over each time value
     for i in tqdm(range(len(time))):
         # Your existing code
 
         # print(parameters[i])
-        nPhotonsCollected_values[i] = model(parameters[i])
+        nPhotonsCollected_values[i] = model(parameters[i], skin_model_const_params)
         # print(nPhotonsCollected_values[i])
 
     # plt.plot(time, nPhotonsCollected_values, '-o')
