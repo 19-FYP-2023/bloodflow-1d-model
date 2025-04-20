@@ -1,13 +1,13 @@
-import sys
-import numpy as np
-import matplotlib
-from constants import *
 from configparser import SafeConfigParser
+from constants import *
 import matplotlib.pyplot as plt
+import numpy as np
+import os
+from scipy import signal
 from skinModel import model
 from skin_model_const_params import SkinModelConstParams
+import sys
 from tqdm import tqdm
-import os
 
 def read_output(filename):
     """
@@ -86,8 +86,13 @@ used variables: Nx, Nt, T0, T, L, names, locations
 no_of_arteries, Nx, Nt, T0, T, L, rc, qc, rho, mesh_locations, names, locations = read_output(base) 
 
 # REVIEW: both Nx and L is read from data. So the length referred to by a unit of Nx can vary. Is that an issue?  
+print(f"T0 = {T0}, T = {T}, Nt = {Nt}")
+sampling_freq = Nt/(T-T0)
+nyquist_freq = sampling_freq/2
+norm_cutoff_freq = CUTOFF_FREQ/nyquist_freq
 
-
+print(f"Sampling Frequency = {sampling_freq} Hz")
+print(f"Nyquist Frequency = {nyquist_freq} Hz")
 
 time = np.linspace(T0, T, Nt)
 time3 = np.linspace(T0, T0+3*(T-T0), 3*Nt)
@@ -170,33 +175,45 @@ for d in D:
     Q = (waveForm["flow"]/waveForm["area"])/100 # TODO: check if division by 100 is to convert cm to m 
 
 
-    y = np.sign(Q) * m_d * (np.sqrt(np.abs(Q / Qc)) / (1 + np.sqrt(np.abs(Q / Qc)))) # Eq,h is calculated here (paper: Quantification of the Phenomena Affecting Reflective Arterial Photoplethysmography)
-    norm_y = y / np.max(y) # REVIEW: why is this normalized?
+    eqh = np.sign(Q) * m_d * (np.sqrt(np.abs(Q / Qc)) / (1 + np.sqrt(np.abs(Q / Qc)))) # Eq,h is calculated here (paper: Quantification of the Phenomena Affecting Reflective Arterial Photoplethysmography)
+    # norm_y = y / np.max(y) # REVIEW: why is this normalized?
 
-    norm_y_min = np.argmin(norm_y, axis=0)
-    print("min p y : ", norm_y_min)
-
-    norm_y_3 = np.tile(norm_y,3)
+    eqh_3 = np.tile(eqh,3)
 
     delta = nd * np.exp(-time / tud) + na * np.exp(-time / tua) # related to equation (6) in the paper (paper: Quantification of the Phenomena Affecting Reflective Arterial Photoplethysmography)
-    norm_delta = delta / np.sum(delta) # REVIEW: why is this normalized?
+    # norm_delta = delta / np.sum(delta) # REVIEW: why is this normalized?
 
-    ab_org = np.convolve(norm_y_3, norm_delta, 'same') # REVIEW: why isn't 'full' used?
-    ab_crop = ab_org[200:800] # REVIEW: Shouldn't the range be [ floor(Nt/2), floor(Nt/2) + 3Nt - Nt + 1 ] ? For this case (Nt = 400) => [200, 1001]
+    # ab_org = np.convolve(norm_y_3, norm_delta, 'same') # REVIEW: why isn't 'full' used?
+    # ab_crop = ab_org[200:800] # REVIEW: Shouldn't the range be [ floor(Nt/2), floor(Nt/2) + 3Nt - Nt + 1 ] ? For this case (Nt = 400) => [200, 1001]
+
+    eql_extended = np.convolve(eqh_3, delta, 'same')
+    eql = eql_extended[Nt:2*Nt]
+
+    print(f"eqh =\n{eqh[:10]}")
+    print(f"eql_extended =\n{eql_extended[:10]}")
+    print(f"eql =\n{eql[:10]}")
+    print(f"Nt = {Nt}")
+
+    fig3, ax3 = plt.subplots(2)
+    ax3[0].plot(time, eqh)
+    ax3[0].set_title("Eqh")
+    ax3[1].plot(time, eql)
+    ax3[1].set_title("Eql")
+    fig3.savefig(f"{result_folder}/eqh_eql.png")
 
     # ab_crop is Eq,l (paper: Quantification of the Phenomena Affecting Reflective Arterial Photoplethysmography)
-    ab_min = np.argmin(ab_crop, axis=0)
-    print("min p y : ", ab_min)
+    # ab_min = np.argmin(ab_crop, axis=0)
+    # print("min p y : ", ab_min)
 
     # # check if the signal has been shifted forward after convolution
     # if (ab_min<norm_y_min): # REVIEW: Why is this done?
     #     raise ValueError("Min point cannot find")
     
-    start_ab = 200 + ab_min - norm_y_min 
+    # start_ab = 200 + ab_min - norm_y_min 
     # start_ab = 0 
 
     # REVIEW: why is this alignment needed?
-    ab = ab_org[start_ab:start_ab+400] # TODO: replace 400 with Nt 
+    # ab = ab_org[start_ab:start_ab+400] # TODO: replace 400 with Nt 
     # TODO: add the effect of Eq in macroscropic sense without including it in the skin model simulation 
 
     # n = max(len(norm_y), len(norm_delta))
@@ -207,10 +224,10 @@ for d in D:
     # ab_centered = np.convolve(norm_y_centered, norm_delta_centered, 'same')
 
     # ab_croped = ab_centered[Nt:2*Nt] 
-    print("min p ab : ", np.argmin(ab, axis=0))
+    # print("min p ab : ", np.argmin(ab, axis=0))
      
 
-    print('croped :',ab.shape)
+    # print('croped :',ab.shape)
     # plt.plot(norm_delta)
     # plt.plot(ab)
     # plt.plot(norm_y)
@@ -237,32 +254,38 @@ for d in D:
     #   - diameter of the vessel
     #   - pressure inside the vessel
     #   - effect of blood flow for rPPG
-    parameters = np.concatenate((diameter.reshape(Nt,1),waveForm["pressure"].reshape(Nt,1),ab.reshape(Nt,1)), axis=1)
+    parameters = np.concatenate((diameter.reshape(Nt,1),waveForm["pressure"].reshape(Nt,1)), axis=1)
 
     print(parameters.shape)
 
     nPhotonsCollected_values = np.zeros_like(time)
+    eql_vals = np.zeros_like(time)
+    eqh_vals = np.zeros_like(time)
 
     skin_model_const_params = SkinModelConstParams(GEO_XLIMITS, GEO_YLIMITS, GEO_ZLIMITS, NUM_X_TICKS, NUM_Y_TICKS, NUM_Z_TICKS, TX_RX_DISTANCE, MEAN_PENETRATION)
 
     # Loop over each time value
     for i in tqdm(range(len(time))):
-        # Your existing code
-
-        # print(parameters[i])
+        # propagate light through the skin model and get the remaining amount arriving at the receiver
         nPhotonsCollected_values[i] = model(parameters[i], skin_model_const_params)
-        # print(nPhotonsCollected_values[i])
 
-    # plt.plot(time, nPhotonsCollected_values, '-o')
-    # plt.xlabel('t')
-    # plt.ylabel('nPhotonsCollected')
-    # plt.title('Simulation Results')
-    # plt.grid(True)
-    # plt.show()
+    np.save(f"{result_folder}/ppg_d({d}).npy", nPhotonsCollected_values)
 
-    ppgs.append(nPhotonsCollected_values)
-    plt.plot(time, nPhotonsCollected_values, label=f"D={d}")
-    plt.savefig(f"{result_folder}/ppg_d({d}).png")
+    # perform low-pass filtering with a butterworth filter to remove high frequency noise
+    b, a = signal.butter(FILTER_ORDER, norm_cutoff_freq, btype='low')
+    filtered_inv_signal = signal.filtfilt(b, a, nPhotonsCollected_values)
+
+    filtered_ppg_signal = 1 - filtered_inv_signal
+    ppgs.append(filtered_ppg_signal)
+
+    np.save(f"{result_folder}/filtered_ppg_signal({d}).npy", filtered_ppg_signal)
+
+    fig_2, ax_2 = plt.subplots()
+    fig_2.suptitle(f"PPG_d({d})")
+    ax_2.plot(time, filtered_ppg_signal)
+    fig_2.savefig(f"{result_folder}/ppg_d({d}).png")
+    # plt.plot(time, nPhotonsCollected_values, label=f"D={d}")
+    # plt.savefig(f"{result_folder}/ppg_d({d}).png")
 
 plt.xlabel('Time')  # You may need to replace 'Time' with the appropriate label
 plt.ylabel('Reflected light')  # You may need to replace 'Y' with the appropriate label
