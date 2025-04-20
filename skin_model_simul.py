@@ -146,9 +146,6 @@ for d in D:
         y = M[d, :]
 
         waveForm[name] = y
-
-    #print(waveForm) #flow,area,pressure
-
     
     for key, val in waveForm.items():
         print(key, val.shape, type(val[0]))
@@ -170,79 +167,6 @@ for d in D:
     Simulating the flow rate effect for PPG
     """    
     diameter = 2*np.sqrt(waveForm["area"]/np.pi) # how the diameter change with time
- 
-    # REVIEW: shouldn't Q = waveForm["flow"] ?
-    Q = (waveForm["flow"]/waveForm["area"])/100 # TODO: check if division by 100 is to convert cm to m 
-
-
-    eqh = np.sign(Q) * m_d * (np.sqrt(np.abs(Q / Qc)) / (1 + np.sqrt(np.abs(Q / Qc)))) # Eq,h is calculated here (paper: Quantification of the Phenomena Affecting Reflective Arterial Photoplethysmography)
-    # norm_y = y / np.max(y) # REVIEW: why is this normalized?
-
-    eqh_3 = np.tile(eqh,3)
-
-    delta = nd * np.exp(-time / tud) + na * np.exp(-time / tua) # related to equation (6) in the paper (paper: Quantification of the Phenomena Affecting Reflective Arterial Photoplethysmography)
-    # norm_delta = delta / np.sum(delta) # REVIEW: why is this normalized?
-
-    # ab_org = np.convolve(norm_y_3, norm_delta, 'same') # REVIEW: why isn't 'full' used?
-    # ab_crop = ab_org[200:800] # REVIEW: Shouldn't the range be [ floor(Nt/2), floor(Nt/2) + 3Nt - Nt + 1 ] ? For this case (Nt = 400) => [200, 1001]
-
-    eql_extended = np.convolve(eqh_3, delta, 'same')
-    eql = eql_extended[Nt:2*Nt]
-
-    print(f"eqh =\n{eqh[:10]}")
-    print(f"eql_extended =\n{eql_extended[:10]}")
-    print(f"eql =\n{eql[:10]}")
-    print(f"Nt = {Nt}")
-
-    fig3, ax3 = plt.subplots(2)
-    ax3[0].plot(time, eqh)
-    ax3[0].set_title("Eqh")
-    ax3[1].plot(time, eql)
-    ax3[1].set_title("Eql")
-    fig3.savefig(f"{result_folder}/eqh_eql.png")
-
-    # ab_crop is Eq,l (paper: Quantification of the Phenomena Affecting Reflective Arterial Photoplethysmography)
-    # ab_min = np.argmin(ab_crop, axis=0)
-    # print("min p y : ", ab_min)
-
-    # # check if the signal has been shifted forward after convolution
-    # if (ab_min<norm_y_min): # REVIEW: Why is this done?
-    #     raise ValueError("Min point cannot find")
-    
-    # start_ab = 200 + ab_min - norm_y_min 
-    # start_ab = 0 
-
-    # REVIEW: why is this alignment needed?
-    # ab = ab_org[start_ab:start_ab+400] # TODO: replace 400 with Nt 
-    # TODO: add the effect of Eq in macroscropic sense without including it in the skin model simulation 
-
-    # n = max(len(norm_y), len(norm_delta))
-    # norm_y_centered = np.pad(norm_y, (n - len(norm_y), 0), mode='constant')
-    # norm_delta_centered = np.pad(norm_delta, (n - len(norm_delta), 0), mode='constant')
-
-    # # Convolve the centered signals
-    # ab_centered = np.convolve(norm_y_centered, norm_delta_centered, 'same')
-
-    # ab_croped = ab_centered[Nt:2*Nt] 
-    # print("min p ab : ", np.argmin(ab, axis=0))
-     
-
-    # print('croped :',ab.shape)
-    # plt.plot(norm_delta)
-    # plt.plot(ab)
-    # plt.plot(norm_y)
-
-    # # plt.plot(time3, ab_centered)
-    # # plt.plot(time, ab_croped)
-    # plt.xlabel('t')
-    # plt.ylabel('Q')
-    # plt.title('abbsobtion from flow')
-    # plt.grid(True)
-    # plt.show()
-
-    # print(diameter.shape)
-    # print(waveForm["pressure"].shape)
-    # print(ab.shape)
 
     """ 
     Skin simulation:
@@ -284,8 +208,6 @@ for d in D:
     fig_2.suptitle(f"PPG_d({d})")
     ax_2.plot(time, filtered_ppg_signal)
     fig_2.savefig(f"{result_folder}/ppg_d({d}).png")
-    # plt.plot(time, nPhotonsCollected_values, label=f"D={d}")
-    # plt.savefig(f"{result_folder}/ppg_d({d}).png")
 
 plt.xlabel('Time')  # You may need to replace 'Time' with the appropriate label
 plt.ylabel('Reflected light')  # You may need to replace 'Y' with the appropriate label
