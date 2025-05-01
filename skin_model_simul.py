@@ -139,7 +139,7 @@ for patient_folder_name in patient_folders:
         print("length of atery: ", L[j])
 
 
-        D = [22]
+        D = [22.5]
         for d in D:
             if d>L[j]:
                 raise ValueError('Specified length is larger than atery length')
