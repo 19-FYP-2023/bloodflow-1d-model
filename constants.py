@@ -1,3 +1,7 @@
+# folder paths
+OUTPUTS_FOLDER_PATH = "outputs"
+RESULTS_FOLDER_PATH = "results"
+
 # constants for the skin model
 GEO_XLIMITS = [-0.3, 0.3]
 GEO_YLIMITS = [-0.3, 0.3]
