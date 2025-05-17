@@ -78,7 +78,7 @@ def mediaPropertiesFunc(parameters):
         M = 0  # Melanin content
         F = 0  # Fat content
         if wavelength == 660:
-            return 0.3162
+            return 0.5453 # 0.3162
         elif wavelength == 890:
             return 2459
         else:
