@@ -81,9 +81,8 @@ for patient_folder_name in patient_folders:
             print(f"[LOG] creating {result_folder}")
             os.mkdir(f"{result_folder}")
         else:
-            print(f"[LOG] cleaning existing {result_folder}")
-            os.rmdir(f"{result_folder}")
-            os.mkdir(f"{result_folder}")
+            print(f"[LOG] already exist {result_folder}")
+  
 
         """ 
         used variables: Nx, Nt, T0, T, L, names, locations 
@@ -139,7 +138,7 @@ for patient_folder_name in patient_folders:
         print("length of atery: ", L[j])
 
 
-        D = [22.5]
+        D = [22]
         for d in D:
             if d>L[j]:
                 raise ValueError('Specified length is larger than atery length')

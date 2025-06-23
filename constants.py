@@ -1,6 +1,6 @@
 # folder paths
-OUTPUTS_FOLDER_PATH = "outputs"
-RESULTS_FOLDER_PATH = "results"
+OUTPUTS_FOLDER_PATH = "/home/dumindu/modeling/out/"
+RESULTS_FOLDER_PATH = "/home/dumindu/modeling/out/"
 
 # constants for the skin model
 GEO_XLIMITS = [-0.3, 0.3]
