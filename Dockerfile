@@ -19,6 +19,8 @@ RUN sudo apt-get autoremove
 # RUN python3 app.py
 RUN git clone https://github.com/19-FYP-2023/bloodflow-1d-model.git
 
+RUN cd bloodflow-1d-model && git checkout local && cd ..
+RUN cd bloodflow-1d-model && git pull origin local && cd ..
 RUN cd bloodflow-1d-model && sudo python3 setup.py install && cd ..
 
 # RUN cd bloodflow-1d-model && python3 demo_arterybranch.py --cfg config/demo_arterybranch.cfg && cd ..
