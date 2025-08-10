@@ -4,7 +4,7 @@ git pull origin local
 # docker build --no-cache -t arteryfe:2017.2.0 .
 
 #loop patient number from 1 to 4374
-for i in {10..4374}
+for i in $(seq 40 40 4374)
 #run createCardiacOutput.py  with system aregument for i
 do
     
@@ -51,10 +51,10 @@ do
 
     docker stop arteryfe_container
 
-    git checkout skin_model
-    git pull origin skin_model
+    # git checkout skin_model
+    # git pull origin skin_model
 
-    python3 skin_model_simul.py output_$i
+    # python3 skin_model_simul.py output_$i
 
     
 done
