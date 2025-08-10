@@ -1,6 +1,8 @@
 import numpy as np
 
 from dolfin import *
+import matplotlib
+matplotlib.use('Agg')  # Use non-GUI backend
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from configparser import SafeConfigParser
