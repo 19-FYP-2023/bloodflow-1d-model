@@ -252,7 +252,6 @@ class Artery(object):
                 "linear_solver": "mumps",  # Can use iterative methods like gmres with preconditioners
                 "preconditioner": "ilu",  # ILU preconditioner
                 "report": False,  # Disable convergence reporting
-                "monitor_convergence": False,  # Disable convergence monitoring
             }
         }
         
